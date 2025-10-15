@@ -15,8 +15,8 @@ resource "aws_lambda_function" "bedrock_agent" {
   source_code_hash = filebase64sha256("${local.parent_dir}/functions/${var.bedrock_agent_lambda_name}.zip")
 
   # Timeout and memory settings (adjust as needed)
-  timeout     = 60
-  memory_size = 128
+  timeout     = 180
+  memory_size = 256
   environment {
     variables = var.app_env_vars
   }

@@ -11,7 +11,7 @@ locals {
 module "vpc" {
   source            = "./modules/vpc"
   cidr_block        = var.vpc_cidr
-  name              = "PLight-VPC-${var.environment}"
+  name              = "RELU-VPC-${var.environment}"
   public_subnet_ids = module.subnets.public_subnet_ids
 }
 
@@ -33,90 +33,77 @@ module "subnets" {
   ]
 }
 
-# IAM Role for Lambda Function
-# data "aws_iam_policy_document" "lambda_assume_role" {
-#   statement {
-#     effect = "Allow"
-#     principals {
-#       type        = "Service"
-#       identifiers = ["lambda.amazonaws.com"]
-#     }
-#     actions = ["sts:AssumeRole"]
-#   }
-# }
-
-# resource "aws_iam_role" "lambda_execution_role" {
-#   name               = "lambda-execution-role-${var.environment}"
-#   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
-# }
-
-# resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
-#   role       = aws_iam_role.lambda_execution_role.name
-#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-# }
-
-# IAM Role for EventBridge Scheduler
-# data "aws_iam_policy_document" "scheduler_assume_role" {
-#   statement {
-#     effect = "Allow"
-#     principals {
-#       type        = "Service"
-#       identifiers = ["scheduler.amazonaws.com"]
-#     }
-#     actions = ["sts:AssumeRole"]
-#   }
-# }
-
-# resource "aws_iam_role" "scheduler_execution_role" {
-#   name               = "scheduler-execution-role-${var.environment}"
-#   assume_role_policy = data.aws_iam_policy_document.scheduler_assume_role.json
-# }
-
-# data "aws_iam_policy_document" "scheduler_lambda_invoke" {
-#   statement {
-#     effect = "Allow"
-#     actions = [
-#       "lambda:InvokeFunction"
-#     ]
-#     resources = ["*"]
-#   }
-# }
-
-# resource "aws_iam_role_policy" "scheduler_lambda_invoke" {
-#   name   = "scheduler-lambda-invoke-${var.environment}"
-#   role   = aws_iam_role.scheduler_execution_role.id
-#   policy = data.aws_iam_policy_document.scheduler_lambda_invoke.json
-# }
 
 module "iam" {
   source = "./modules/iam"
-  
+
 }
 
 # Module for Lambda Function
 module "lambda" {
   source = "./modules/lambda"
-  
-  primary_region             = var.aws_region
-  conveyor_motor_simulator_lambda_name = var.conveyor_motor_simulator_lambda_name
-  bedrock_agent_arn         = var.bedrock_agent_arn
+
+  primary_region                                     = var.aws_region
+  conveyor_motor_simulator_lambda_name               = var.conveyor_motor_simulator_lambda_name
+  bedrock_agent_arn                                  = var.bedrock_agent_arn
   conveyor_motor_simulator_lambda_execution_role_arn = module.iam.lambda_execution_role_arn
-  bedrock_agent_lambda_execution_role_arn = module.iam.lambda_execution_role_arn
-  app_env_vars = {"environment" = var.environment}
-  bedrock_agent_lambda_name = var.bedrock_agent_lambda_name
+  bedrock_agent_lambda_execution_role_arn            = module.iam.lambda_execution_role_arn
+  app_env_vars                                       = { "environment" = var.environment }
+  bedrock_agent_lambda_name                          = var.bedrock_agent_lambda_name
+  feature_engineer_lambda_name                       = var.feature_engineer_lambda_name
+  feature_engineer_lambda_execution_role_arn         = module.iam.lambda_execution_role_arn
 }
 
 # Module for IoT Core
 module "iot_core" {
   source = "./modules/iot_core"
-  
+
   lambda_function_arn = module.lambda.bedrock_agent_lambda_function_arn
 }
 
 # Module for EventBridge Rule
 module "eventsbridge" {
   source = "./modules/eventsbridge"
-  
+
   schedule_name = var.schedule_name
   target_arn    = module.lambda.conveyor_motor_simulator_lambda_function_arn
+}
+
+module "sagemaker" {
+  source = "./modules/sagemaker"
+
+  vpc_id                           = module.vpc.vpc_id
+  subnet_id                        = module.subnets.private_subnet_ids
+  sagemaker_domain_name            = var.sagemaker_domain_name
+  sagemaker_execution_role_arn     = module.iam.sagemaker_execution_role_arn
+  sagemaker_distribution_image_arn = var.sagemaker_distribution_image_arn
+}
+
+## block to allow S3 to invoke the feature_engineer Lambda function
+# Permission for S3 to invoke Lambda
+resource "aws_lambda_permission" "allow_bucket" {
+  statement_id  = "AllowExecutionFromS3Bucket"
+  action        = "lambda:InvokeFunction"
+  function_name = module.lambda.feature_engineer_lambda_function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = data.aws_s3_bucket.conveyor_batch_bucket.arn
+}
+
+# Data source to reference the existing conveyor-batch S3 bucket
+data "aws_s3_bucket" "conveyor_batch_bucket" {
+  bucket = var.conveyor_batch_bucket_name
+}
+
+# S3 Event Notification to trigger Lambda
+resource "aws_s3_bucket_notification" "bucket_notification" {
+  bucket = data.aws_s3_bucket.conveyor_batch_bucket.id
+
+  lambda_function {
+    lambda_function_arn = module.lambda.feature_engineer_lambda_function_arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_prefix       = "conveyor_batches/"
+    filter_suffix       = ".json"
+  }
+
+  depends_on = [aws_lambda_permission.allow_bucket]
 }

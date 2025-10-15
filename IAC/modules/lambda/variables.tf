@@ -30,7 +30,7 @@ variable "conveyor_motor_simulator_lambda_execution_role_arn" {
 variable "bedrock_agent_lambda_execution_role_arn" {
   description = "ARN of the IAM role assumed by the Bedrock agent Lambda function"
   type        = string
-  
+
 }
 
 variable "app_env_vars" {
@@ -41,4 +41,16 @@ variable "app_env_vars" {
 variable "bedrock_agent_arn" {
   description = "The ARN of the Bedrock agent that triggers the Lambda function"
   type        = string
+}
+
+variable "feature_engineer_lambda_name" {
+  description = "Name of the feature engineering Lambda function"
+  type        = string
+
+}
+
+variable "feature_engineer_lambda_execution_role_arn" {
+  description = "ARN of the IAM role assumed by the feature engineering Lambda function"
+  type        = string
+
 }

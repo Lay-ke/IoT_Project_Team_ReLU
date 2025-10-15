@@ -30,38 +30,42 @@ def simulate_conveyor_batch(device_id: str, fault: str, n: int = 60) -> pd.DataF
     """Simulate correlated conveyor sensor readings."""
     rng = np.random.default_rng()
 
-    load = rng.normal(500, 25, n)  # Load around 500kg with noise
-    vibration = 0.6 + 0.001*(load - 500) + rng.normal(0, 0.05, n)  # Vibration increases with load
-    current = 3.3 + 0.003*(load - 500) + 0.4*vibration + rng.normal(0, 0.05, n)  # Current increases with load
+    load = rng.normal(500, 25, n)
+    vibration = 0.6 + 0.001*(load - 500) + rng.normal(0, 0.05, n)
+    current = 3.3 + 0.003*(load - 500) + 0.4*vibration + rng.normal(0, 0.05, n)
+    temperature = 38 + 0.2*current + 0.3*vibration + rng.normal(0, 0.3, n)
+    speed = rng.normal(120, 1, n)
 
-    speed = 120 - 0.05 * (load - 500) + rng.normal(0, 1, n)  # Speed decreases with load
-
-    temperature = 38 + 0.25*current + 0.3*vibration + 0.05*load - 0.3*speed + rng.normal(0, 0.3, n)
-
-    # Adjust for fault-specific behavior
+    # ===== Fault-specific patterns =====
     if fault == "ball_bearing":
-        vibration += np.linspace(0, 0.8, n)  # Increase vibration slowly
-        temperature += np.linspace(0, 3.0, n)  # Slow temperature rise
+        vibration += np.linspace(0, 0.8, n)
+        vibration += rng.normal(0, 0.15, n)
+        temperature += np.linspace(0, 3.0, n)
+
     elif fault == "central_shaft":
-        vibration += np.sin(np.linspace(0, 4*np.pi, n)) * 0.25  # Shaft oscillation
-        temperature += np.linspace(0, 1.5, n)  # Steady temperature rise
-        speed += np.sin(np.linspace(0, 2*np.pi, n)) * 0.6  # Speed drops
+        vibration += np.sin(np.linspace(0, 4*np.pi, n)) * 0.25
+        temperature += np.linspace(0, 1.5, n)
+        speed += np.sin(np.linspace(0, 2*np.pi, n)) * 0.6
+
     elif fault == "pulley":
-        vibration += np.sin(np.linspace(0, 8*np.pi, n)) * 0.3  # Periodic vibration
-        current += np.random.choice([0, 0.3], size=n, p=[0.9, 0.1])  # Small current spikes
-        speed -= np.random.choice([0, 0.5], size=n, p=[0.95, 0.05])  # Slippage affects speed
+        vibration += np.sin(np.linspace(0, 8*np.pi, n)) * 0.3
+        current += np.random.choice([0, 0.3], size=n, p=[0.9, 0.1])
+        speed -= np.random.choice([0, 0.5], size=n, p=[0.95, 0.05])
+
     elif fault == "drive_motor":
-        current += np.linspace(0.2, 0.6, n)  # Increased motor load
-        temperature += np.linspace(1.0, 4.0, n)  # Significant temperature rise
-        vibration += rng.normal(0, 0.05, n)  # Small random vibrations
+        current += np.linspace(0.2, 0.6, n)
+        temperature += np.linspace(1.0, 4.0, n)
+        vibration += rng.normal(0, 0.05, n)
+
     elif fault == "idler_roller":
-        vibration += np.linspace(0, 0.3, n)  # Mild vibration increase
-        vibration += rng.normal(0, 0.05, n)  # Random noise
-        current += rng.normal(0, 0.02, n)  # Minor current increase
+        vibration += np.linspace(0, 0.3, n)
+        vibration += rng.normal(0, 0.05, n)
+        current += rng.normal(0, 0.02, n)
+
     elif fault == "belt_slippage":
-        speed -= np.sin(np.linspace(0, 6*np.pi, n)) * 0.8  # Speed drop
-        vibration += np.sin(np.linspace(0, 6*np.pi, n)) * 0.2  # Slippage-induced vibration
-        current -= np.sin(np.linspace(0, 6*np.pi, n)) * 0.1  # Current drops during slippage
+        speed -= np.sin(np.linspace(0, 6*np.pi, n)) * 0.8
+        vibration += np.sin(np.linspace(0, 6*np.pi, n)) * 0.2
+        current -= np.sin(np.linspace(0, 6*np.pi, n)) * 0.1
 
     timestamps = [
         datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")

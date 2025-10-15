@@ -2,7 +2,7 @@
 resource "aws_cloudwatch_event_rule" "lambda_schedule" {
   name                = var.schedule_name
   description         = "Trigger Lambda function on a schedule"
-  schedule_expression = "rate(5 minutes)"  # Every 5 minutes
+  schedule_expression = "rate(5 minutes)" # Every 5 minutes
 }
 
 # EventBridge Target for the Lambda function
