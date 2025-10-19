@@ -15,8 +15,8 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, unit, icon: Icon, trend, status = "healthy", className }: MetricCardProps) {
   const trendColors = {
-    up: "text-success",
-    down: "text-destructive",
+    up: "text-[hsl(var(--success))]",
+    down: "text-[hsl(var(--destructive))]",
     stable: "text-muted-foreground",
   };
 

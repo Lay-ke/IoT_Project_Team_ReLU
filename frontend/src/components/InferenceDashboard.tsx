@@ -172,9 +172,9 @@ export const InferenceDashboard = ({
             )}
           >
             <statusInfo.icon
-              className={cn("h-5 w-5", `text-${statusInfo.color}`)}
+              className={cn("h-5 w-5", `text-[hsl(var(--${statusInfo.color}))]`)}
             />
-            <AlertTitle className={cn("font-bold", `text-${statusInfo.color}`)}>
+            <AlertTitle className={cn("font-bold", `text-[hsl(var(--${statusInfo.color}))]`)}>
               Engineering Guidance
             </AlertTitle>
             <AlertDescription className="text-xs">

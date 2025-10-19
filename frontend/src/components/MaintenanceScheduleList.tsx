@@ -28,7 +28,7 @@ export const MaintenanceScheduleList = () => {
   }
 
   if (error) {
-    return <div className="text-destructive p-8">Error loading maintenance schedules: {error.message}</div>;
+    return <div className="text-[hsl(var(--destructive))] p-8">Error loading maintenance schedules: {error.message}</div>;
   }
 
   const sortedSchedules = [...(schedules || [])].sort((a, b) => {

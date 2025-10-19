@@ -29,7 +29,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       label: "Critical",
       icon: XCircle,
       bgClass: "bg-destructive/20 border-destructive",
-      textClass: "text-destructive-foreground",
+      textClass: "text-red-500",
       iconClass: "text-destructive",
       glowClass: "shadow-glow-critical",
     },

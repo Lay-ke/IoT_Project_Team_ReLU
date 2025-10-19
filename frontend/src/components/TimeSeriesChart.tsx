@@ -9,11 +9,11 @@ interface TimeSeriesChartProps {
 }
 
 const metrics = [
-  { key: "Speed (rpm)", color: "#06b6d4", label: "Speed" },
-  { key: "Load (kg)", color: "#10b981", label: "Load" },
-  { key: "Temperature (℃)", color: "#f59e0b", label: "Temperature" },
-  { key: "Vibration (m/s²)", color: "#a855f7", label: "Vibration" },
-  { key: "Current (A)", color: "#ef4444", label: "Current" },
+  { key: "Speed (rpm)", color: "hsl(var(--chart-1))", label: "Speed" },
+  { key: "Load (kg)", color: "hsl(var(--chart-2))", label: "Load" },
+  { key: "Temperature (℃)", color: "hsl(var(--chart-3))", label: "Temperature" },
+  { key: "Vibration (m/s²)", color: "hsl(var(--chart-4))", label: "Vibration" },
+  { key: "Current (A)", color: "hsl(var(--chart-5))", label: "Current" },
 ] as const;
 
 export function TimeSeriesChart({ data }: TimeSeriesChartProps) {

@@ -10,23 +10,23 @@ export function StatusIndicator({ status, deviceId }: StatusIndicatorProps) {
     normal: {
       icon: CheckCircle,
       label: "Healthy",
-      color: "text-green-400",
-      bgColor: "bg-green-500/10",
-      borderColor: "border-green-500/30",
+      color: "text-success",
+      bgColor: "bg-success/10",
+      borderColor: "border-success/30",
     },
     warning: {
       icon: AlertTriangle,
       label: "At Risk",
-      color: "text-yellow-400",
-      bgColor: "bg-yellow-500/10",
-      borderColor: "border-yellow-500/30",
+      color: "text-warning",
+      bgColor: "bg-warning/10",
+      borderColor: "border-warning/30",
     },
     fault: {
       icon: AlertCircle,
       label: "Critical",
-      color: "text-red-400",
-      bgColor: "bg-red-500/10",
-      borderColor: "border-red-500/30",
+      color: "text-destructive",
+      bgColor: "bg-destructive/10",
+      borderColor: "border-destructive/30",
     },
   };
 

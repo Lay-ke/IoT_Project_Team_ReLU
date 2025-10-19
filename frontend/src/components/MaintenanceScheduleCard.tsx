@@ -90,12 +90,12 @@ export const MaintenanceScheduleCard = ({
   return (
     <AccordionItem
       value={schedule_id}
-      className="border-border bg-gradient-card rounded-lg border shadow-sm overflow-hidden !text-white"
+      className="border-border bg-gradient-card rounded-lg border shadow-sm overflow-hidden !text-foreground"
     >
       <AccordionTrigger className="p-4 hover:no-underline">
         <div className="w-full flex flex-col gap-2 justify-start items-start">
           <div className="flex items-center gap-4">
-            <HardHat className={cn("h-6 w-6", `text-${status.color}`)} />
+            <HardHat className={cn("h-6 w-6", `text-[hsl(var(--${status.color}))]`)} />
             <div>
               <p className="font-bold text-base text-left">
                 {machine_id} - <span className="capitalize">{fault_type}</span>
@@ -233,10 +233,10 @@ export const MaintenanceScheduleCard = ({
                 </TableBody>
               </Table>
               <Alert className="mt-2 border-primary/50 bg-primary/10 text-primary-foreground">
-                <AlertTitle className="text-xs font-bold text-white">
+                <AlertTitle className="text-xs font-bold text-foreground">
                   💡 Recommended: {cost_benefit_analysis?.recommended_action}
                 </AlertTitle>
-                <AlertDescription className="text-xs text-white">
+                <AlertDescription className="text-xs text-foreground">
                   {cost_benefit_analysis?.recommendation_reason}
                 </AlertDescription>
               </Alert>
