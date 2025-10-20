@@ -254,7 +254,7 @@ const Index = () => {
 
         {/* Charts Section */}
         <div className="space-y-6">
-          <DigitalTwin status={healthStatus} />
+          {/* <DigitalTwin status={healthStatus} /> */}
           {inferenceData && inferenceData.length > 0 && (
             <InferenceDashboard inference={inferenceData[0]} />
           )}
