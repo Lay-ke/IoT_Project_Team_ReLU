@@ -1,0 +1,220 @@
+# Knowledge Base Module - Bedrock Knowledge Base for FaultCast
+
+# S3 Bucket for Knowledge Base Documents (only create if not using existing)
+resource "aws_s3_bucket" "knowledge_base_docs" {
+  count  = var.use_existing_s3_bucket ? 0 : 1
+  bucket = "${var.project_name}-kb-docs-${var.environment}"
+
+  tags = {
+    Name        = "${var.project_name}-knowledge-base-docs"
+    Environment = var.environment
+  }
+}
+
+resource "aws_s3_bucket_versioning" "knowledge_base_docs" {
+  count  = var.use_existing_s3_bucket ? 0 : 1
+  bucket = aws_s3_bucket.knowledge_base_docs[0].id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "knowledge_base_docs" {
+  count  = var.use_existing_s3_bucket ? 0 : 1
+  bucket = aws_s3_bucket.knowledge_base_docs[0].id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "knowledge_base_docs" {
+  count  = var.use_existing_s3_bucket ? 0 : 1
+  bucket = aws_s3_bucket.knowledge_base_docs[0].id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Local values to handle existing vs new bucket
+locals {
+  kb_bucket_name = var.use_existing_s3_bucket ? var.existing_s3_bucket_name : aws_s3_bucket.knowledge_base_docs[0].id
+  kb_bucket_arn  = var.use_existing_s3_bucket ? var.existing_s3_bucket_arn : aws_s3_bucket.knowledge_base_docs[0].arn
+}
+
+# Note: IAM role for Knowledge Base is created in the IAM module
+
+# OpenSearch Serverless Collection for Knowledge Base
+resource "aws_opensearchserverless_security_policy" "knowledge_base_encryption" {
+  name = "${var.project_name}-kb-encryption-${var.environment}"
+  type = "encryption"
+
+  policy = jsonencode({
+    Rules = [
+      {
+        Resource = [
+          "collection/${var.project_name}-kb-${var.environment}"
+        ]
+        ResourceType = "collection"
+      }
+    ]
+    AWSOwnedKey = true
+  })
+}
+
+resource "aws_opensearchserverless_security_policy" "knowledge_base_network" {
+  name = "${var.project_name}-kb-network-${var.environment}"
+  type = "network"
+
+  policy = jsonencode([
+    {
+      Rules = [
+        {
+          Resource = [
+            "collection/${var.project_name}-kb-${var.environment}"
+          ]
+          ResourceType = "collection"
+        }
+      ]
+      AllowFromPublic = true
+    }
+  ])
+}
+
+resource "aws_opensearchserverless_collection" "knowledge_base" {
+  name = "${var.project_name}-kb-${var.environment}"
+  type = "VECTORSEARCH"
+
+  depends_on = [
+    aws_opensearchserverless_security_policy.knowledge_base_encryption,
+    aws_opensearchserverless_security_policy.knowledge_base_network
+  ]
+
+  tags = {
+    Name        = "${var.project_name}-knowledge-base"
+    Environment = var.environment
+  }
+}
+
+# Data Access Policy for OpenSearch Serverless
+resource "aws_opensearchserverless_access_policy" "knowledge_base" {
+  name = "${var.project_name}-kb-access-${var.environment}"
+  type = "data"
+
+  policy = jsonencode([
+    {
+      Rules = [
+        {
+          Resource = [
+            "collection/${var.project_name}-kb-${var.environment}"
+          ]
+          Permission = [
+            "aoss:CreateCollectionItems",
+            "aoss:DeleteCollectionItems",
+            "aoss:UpdateCollectionItems",
+            "aoss:DescribeCollectionItems"
+          ]
+          ResourceType = "collection"
+        },
+        {
+          Resource = [
+            "index/${var.project_name}-kb-${var.environment}/*"
+          ]
+          Permission = [
+            "aoss:CreateIndex",
+            "aoss:DeleteIndex",
+            "aoss:UpdateIndex",
+            "aoss:DescribeIndex",
+            "aoss:ReadDocument",
+            "aoss:WriteDocument"
+          ]
+          ResourceType = "index"
+        }
+      ]
+      Principal = [
+        var.knowledge_base_role_arn,
+        data.aws_caller_identity.current.arn
+      ]
+    }
+  ])
+}
+
+# Wait for OpenSearch collection and policies to be ready
+resource "time_sleep" "wait_for_opensearch" {
+  depends_on = [
+    aws_opensearchserverless_access_policy.knowledge_base,
+    aws_opensearchserverless_collection.knowledge_base
+  ]
+
+  create_duration = "90s"
+}
+
+# Bedrock Knowledge Base
+resource "aws_bedrockagent_knowledge_base" "faultcast" {
+  name     = "${var.project_name}-kb-${var.environment}"
+  role_arn = var.knowledge_base_role_arn
+
+  knowledge_base_configuration {
+    vector_knowledge_base_configuration {
+      embedding_model_arn = "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/amazon.titan-embed-text-v2:0"
+    }
+    type = "VECTOR"
+  }
+
+  storage_configuration {
+    type = "OPENSEARCH_SERVERLESS"
+    opensearch_serverless_configuration {
+      collection_arn    = aws_opensearchserverless_collection.knowledge_base.arn
+      vector_index_name = "faultcast-index"
+      field_mapping {
+        vector_field   = "vector"
+        text_field     = "text"
+        metadata_field = "metadata"
+      }
+    }
+  }
+
+  depends_on = [
+    time_sleep.wait_for_opensearch
+  ]
+
+  tags = {
+    Name        = "${var.project_name}-knowledge-base"
+    Environment = var.environment
+  }
+}
+
+# Data Sources for Knowledge Base - One per S3 prefix
+resource "aws_bedrockagent_data_source" "faultcast" {
+  count             = length(var.s3_inclusion_prefixes) > 0 ? length(var.s3_inclusion_prefixes) : 1
+  knowledge_base_id = aws_bedrockagent_knowledge_base.faultcast.id
+  name              = length(var.s3_inclusion_prefixes) > 0 ? "${var.project_name}-${replace(replace(var.s3_inclusion_prefixes[count.index], "/", ""), "-", "_")}-${var.environment}" : "${var.project_name}-kb-datasource-${var.environment}"
+
+  data_source_configuration {
+    type = "S3"
+    s3_configuration {
+      bucket_arn = local.kb_bucket_arn
+      
+      # Include specific prefix if provided, otherwise index entire bucket
+      inclusion_prefixes = length(var.s3_inclusion_prefixes) > 0 ? [var.s3_inclusion_prefixes[count.index]] : null
+    }
+  }
+
+  vector_ingestion_configuration {
+    chunking_configuration {
+      chunking_strategy = "FIXED_SIZE"
+      fixed_size_chunking_configuration {
+        max_tokens         = 300
+        overlap_percentage = 20
+      }
+    }
+  }
+}
+
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
