@@ -79,24 +79,23 @@ export interface MaintenanceSchedule {
 
 export type MaintenanceScheduleList = MaintenanceSchedule[];
 
-// ---- Probability mappings for each detected fault type ----
-export interface FaultProbabilities {
-  [faultType: string]: number; // e.g., { pulley: 0.89, normal: 0.07, "ball bearing": 0.01 }
-}
-
 // ---- Top-K classes (simplified subset of all probabilities) ----
 export interface TopKProbabilities {
   [faultType: string]: number;
 }
 
+// ---- A single prediction from the model ----
+export interface Prediction {
+  predicted_class: string;
+  predicted_class_id: number;
+  confidence: number;
+  top_k: TopKProbabilities;
+  timestamp: string; // ISO timestamp
+}
+
 // ---- Inference content structure ----
 export interface InferenceContent {
-  predicted_class: string; // e.g., "pulley"
-  predicted_class_id: number; // numeric class label from model
-  confidence: number; // model confidence 0–1
-  top_k: TopKProbabilities; // top predicted categories
-  all_probabilities: FaultProbabilities; // all model class probabilities
-  timestamp: string; // ISO timestamp, e.g., "2025-10-14T07:03:21.316764Z"
+  predictions: Prediction[];
 }
 
 // ---- Wrapper metadata for storage and retrieval ----

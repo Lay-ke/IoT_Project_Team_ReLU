@@ -1,13 +1,14 @@
+import { HealthStatus } from "@/types/conveyor";
 import { AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface StatusIndicatorProps {
-  status: "normal" | "warning" | "fault";
+  status: HealthStatus;
   deviceId: string;
 }
 
 export function StatusIndicator({ status, deviceId }: StatusIndicatorProps) {
   const statusConfig = {
-    normal: {
+    healthy: {
       icon: CheckCircle,
       label: "Healthy",
       color: "text-success",
@@ -21,7 +22,7 @@ export function StatusIndicator({ status, deviceId }: StatusIndicatorProps) {
       bgColor: "bg-warning/10",
       borderColor: "border-warning/30",
     },
-    fault: {
+    critical: {
       icon: AlertCircle,
       label: "Critical",
       color: "text-destructive",
@@ -49,7 +50,9 @@ export function StatusIndicator({ status, deviceId }: StatusIndicatorProps) {
       <div className="flex items-center gap-4">
         <div className={`rounded-full p-3 ${config.bgColor}`}>
           <Icon
-            className={`h-8 w-8 ${config.color} ${status === "fault" ? "status-pulse" : ""}`}
+            className={`h-8 w-8 ${config.color} ${
+              status === "critical" ? "status-pulse" : ""
+            }`}
           />
         </div>
         <div>
@@ -57,10 +60,10 @@ export function StatusIndicator({ status, deviceId }: StatusIndicatorProps) {
             {config.label}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            {status === "normal" && "All parameters within normal range"}
+            {status === "healthy" && "All parameters within normal range"}
             {status === "warning" &&
               "Parameters approaching critical thresholds"}
-            {status === "fault" && "Immediate maintenance required"}
+            {status === "critical" && "Immediate maintenance required"}
           </p>
         </div>
       </div>

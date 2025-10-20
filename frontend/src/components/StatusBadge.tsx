@@ -13,7 +13,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       label: "Healthy",
       icon: Activity,
       bgClass: "bg-success/20 border-success",
-      textClass: "text-success-foreground",
+      textClass: "text-success",
       iconClass: "text-success",
       glowClass: "shadow-glow-success",
     },

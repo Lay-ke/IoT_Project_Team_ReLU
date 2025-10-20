@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { HealthStatus, InferenceRecord } from "@/types/conveyor";
 import {
   AlertOctagon,
   AlertTriangle,
@@ -27,44 +28,47 @@ import {
   YAxis,
 } from "recharts";
 
-interface InferenceContent {
-  predicted_class: string;
-  confidence: number;
-  all_probabilities: Record<string, number>;
-  timestamp: string;
-}
-
-export interface InferenceData {
-  key: string;
-  content: InferenceContent;
-}
-
 const getStatus = (
   predicted_class: string,
   confidence: number
 ): {
-  status: "Critical" | "Warning" | "Healthy";
+  status: HealthStatus;
   color: string;
   icon: React.ElementType;
 } => {
   if (predicted_class !== "normal") {
     if (confidence > 0.7) {
-      return { status: "Critical", color: "destructive", icon: AlertOctagon };
+      return { status: "critical", color: "destructive", icon: AlertOctagon };
     }
     if (confidence > 0.4) {
-      return { status: "Warning", color: "warning", icon: AlertTriangle };
+      return { status: "warning", color: "warning", icon: AlertTriangle };
     }
   }
-  return { status: "Healthy", color: "success", icon: CheckCircle };
+  return { status: "healthy", color: "success", icon: CheckCircle };
 };
 
 export const InferenceDashboard = ({
   inference,
 }: {
-  inference: InferenceData;
+  inference: InferenceRecord;
 }) => {
+  if (
+    !inference.content.predictions ||
+    inference.content.predictions.length === 0
+  ) {
+    return (
+      <Card className="bg-gradient-card border-border text-foreground shadow-lg font-sans">
+        <CardHeader>
+          <CardTitle>ML Inference Analysis</CardTitle>
+          <CardDescription>No prediction data available.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   const { key, content } = inference;
-  const { predicted_class, confidence, all_probabilities, timestamp } = content;
+  const prediction = content.predictions[0];
+  const { predicted_class, confidence, top_k, timestamp } = prediction;
 
   const machineId = key.split("/")[1];
   const formattedTimestamp = new Date(timestamp).toLocaleString("en-US", {
@@ -73,7 +77,7 @@ export const InferenceDashboard = ({
   });
   const statusInfo = getStatus(predicted_class, confidence);
 
-  const probabilityData = Object.entries(all_probabilities)
+  const probabilityData = Object.entries(top_k)
     .map(([name, value]) => ({
       name: name.charAt(0).toUpperCase() + name.slice(1),
       probability: value * 100,
@@ -82,12 +86,31 @@ export const InferenceDashboard = ({
 
   const getInterpretationText = () => {
     switch (statusInfo.status) {
-      case "Critical":
-        return `Detected a potential ${predicted_class} fault with high confidence (${(confidence * 100).toFixed(2)}%). This requires immediate attention.`;
-      case "Warning":
-        return `Detected a potential ${predicted_class} fault with moderate confidence (${(confidence * 100).toFixed(2)}%). Recommend monitoring.`;
+      case "critical":
+        return `Detected a potential ${predicted_class} fault with high confidence (${(
+          confidence * 100
+        ).toFixed(2)}%). This requires immediate attention.`;
+      case "warning":
+        return `Detected a potential ${predicted_class} fault with moderate confidence (${(
+          confidence * 100
+        ).toFixed(2)}%). Recommend monitoring.`;
       default:
         return `System is operating under normal conditions.`;
+    }
+  };
+
+  const getEngineeringGuidanceText = () => {
+    switch (statusInfo.status) {
+      case "critical":
+        return `There is a high likelihood (${(confidence * 100).toFixed(
+          2
+        )}%) of a ${predicted_class} fault. This requires immediate inspection to prevent system failure.`;
+      case "warning":
+        return `A potential ${predicted_class} fault has been detected with moderate confidence (${(
+          confidence * 100
+        ).toFixed(2)}%). Continued monitoring is recommended.`;
+      default:
+        return "The system is operating normally. No immediate action is required. Continuous monitoring is always recommended.";
     }
   };
 
@@ -108,8 +131,8 @@ export const InferenceDashboard = ({
             statusInfo.color === "destructive"
               ? "destructive"
               : statusInfo.color === "warning"
-                ? "secondary"
-                : "default"
+              ? "secondary"
+              : "default"
           }
           className={cn(
             statusInfo.color === "destructive" &&
@@ -121,7 +144,8 @@ export const InferenceDashboard = ({
           )}
         >
           <statusInfo.icon className="h-4 w-4 mr-1" />
-          {statusInfo.status}
+          {statusInfo.status.charAt(0).toUpperCase() +
+            statusInfo.status.slice(1)}
         </Badge>
       </CardHeader>
 
@@ -172,16 +196,21 @@ export const InferenceDashboard = ({
             )}
           >
             <statusInfo.icon
-              className={cn("h-5 w-5", `text-[hsl(var(--${statusInfo.color}))]`)}
+              className={cn(
+                "h-5 w-5",
+                `text-[hsl(var(--${statusInfo.color}))]`
+              )}
             />
-            <AlertTitle className={cn("font-bold", `text-[hsl(var(--${statusInfo.color}))]`)}>
+            <AlertTitle
+              className={cn(
+                "font-bold",
+                `text-[hsl(var(--${statusInfo.color}))]`
+              )}
+            >
               Engineering Guidance
             </AlertTitle>
             <AlertDescription className="text-xs">
-              Based on the current analysis, there is a high likelihood of a
-              pulley fault. This should be inspected immediately to prevent
-              system failure. Confidence levels may fluctuate as the model
-              continuously learns.
+              {getEngineeringGuidanceText()}
             </AlertDescription>
           </Alert>
         </div>
@@ -204,7 +233,7 @@ export const InferenceDashboard = ({
                   <XAxis
                     type="number"
                     domain={[0, 100]}
-                    unit="%"
+                    unit="%s"
                     tick={{
                       fill: "hsl(var(--muted-foreground))",
                       fontSize: 12,
@@ -238,9 +267,9 @@ export const InferenceDashboard = ({
                         entry.name.toLowerCase() === predicted_class;
                       let color = "hsl(var(--primary))";
                       if (isPredicted) {
-                        if (statusInfo.status === "Critical")
+                        if (statusInfo.status === "critical")
                           color = "hsl(var(--destructive))";
-                        else if (statusInfo.status === "Warning")
+                        else if (statusInfo.status === "warning")
                           color = "hsl(var(--warning))";
                         else color = "hsl(var(--success))";
                       } else if (entry.name.toLowerCase() === "normal") {
@@ -255,7 +284,6 @@ export const InferenceDashboard = ({
           </Card>
         </div>
       </CardContent>
-      
     </Card>
   );
 };

@@ -33,7 +33,7 @@ const REFRESH_INTERVAL = 60000; // 60 seconds
 // Thresholds for metric status
 const THRESHOLDS = {
   speed: { warning: 130, critical: 140 },
-  load: { warning: 550, critical: 600 },
+  load: { warning: 500, critical: 520 },
   temperature: { warning: 45, critical: 50 },
   vibration: { warning: 0.7, critical: 0.85 },
   current: { warning: 4.0, critical: 4.5 },
@@ -60,18 +60,24 @@ const Index = () => {
 
   useEffect(() => {
     if (inferenceData && inferenceData.length > 0) {
-      const latestInference = inferenceData[0].content;
-      const { predicted_class, confidence } = latestInference;
+      const latestInference = inferenceData[0];
+      if (
+        latestInference.content.predictions &&
+        latestInference.content.predictions.length > 0
+      ) {
+        const prediction = latestInference.content.predictions[0];
+        const { predicted_class, confidence } = prediction;
 
-      let newStatus: HealthStatus = "healthy";
-      if (predicted_class !== "normal") {
-        if (confidence > 0.7) {
-          newStatus = "critical";
-        } else if (confidence > 0.4) {
-          newStatus = "warning";
+        let newStatus: HealthStatus = "healthy";
+        if (predicted_class !== "normal") {
+          if (confidence > 0.7) {
+            newStatus = "critical";
+          } else if (confidence > 0.4) {
+            newStatus = "warning";
+          }
         }
+        setHealthStatus(newStatus);
       }
-      setHealthStatus(newStatus);
     }
   }, [inferenceData]);
 
@@ -152,16 +158,24 @@ const Index = () => {
       <main className="container mx-auto px-3 py-6 grid lg:grid-cols-[500px_2fr] gap-4">
         {/* Current Metrics Grid */}
         <div className="space-y-6">
-          <StatusIndicator
-            status={
-              healthStatus === "healthy"
-                ? "normal"
-                : healthStatus === "warning"
-                  ? "warning"
-                  : "fault"
-            }
-            deviceId={DEVICE_ID}
-          />
+          <StatusIndicator status={healthStatus} deviceId={DEVICE_ID} />
+          <div className="flex justify-between items-center pt-4">
+            <h3 className="text-lg font-semibold">Live Sensor Metrics</h3>
+            <div className="flex items-center space-x-3 text-xs text-muted-foreground">
+              <div className="flex items-center">
+                <span className="h-2 w-2 rounded-full bg-success mr-1.5"></span>
+                <span>Normal</span>
+              </div>
+              <div className="flex items-center">
+                <span className="h-2 w-2 rounded-full bg-warning mr-1.5"></span>
+                <span>Warning</span>
+              </div>
+              <div className="flex items-center">
+                <span className="h-2 w-2 rounded-full bg-destructive mr-1.5"></span>
+                <span>Critical</span>
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2  gap-4 animate-fade-in h-max">
             <MetricCard
               title="Speed"
