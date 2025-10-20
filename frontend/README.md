@@ -8,3 +8,5 @@ This is a React-based dashboard for monitoring and predicting the performance of
 - AI-generated maintenance schedules based on sensor data
 - Customizable dashboard layout and styling
 - Integration with a serverless backend for data storage and processing
+  
+![alt text](public/pg.png)
