@@ -27,6 +27,8 @@ export interface InferenceData {
   };
 }
 
+export type InferenceRecordList = InferenceData[];
+
 export type Thresholds = {
   speed: { warning: number; critical: number };
   load: { warning: number; critical: number };

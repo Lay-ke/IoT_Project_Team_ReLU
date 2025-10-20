@@ -6,6 +6,7 @@ import { MetricCard } from "@/components/MetricCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StatusIndicator } from "@/components/StatusIndicator";
 import { TimeSeriesChart } from "@/components/TimeSeriesChart";
+import { DigitalTwin } from "@/components/DigitalTwin";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -81,13 +82,12 @@ const Index = () => {
     [thresholds]
   );
 
+  // Set status based on the latest inference data
   useEffect(() => {
     if (inferenceData && inferenceData.length > 0) {
-      const latestInference = inferenceData[0];
-      if (
-        latestInference.content.predictions &&
-        latestInference.content.predictions.length > 0
-      ) {
+      const latestInference = [...inferenceData].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+      
+      if (latestInference.content.predictions && latestInference.content.predictions.length > 0) {
         const prediction = latestInference.content.predictions[0];
         const { predicted_class, confidence } = prediction;
 
@@ -187,7 +187,7 @@ const Index = () => {
         <div className="space-y-6">
           <StatusIndicator status={healthStatus} deviceId={DEVICE_ID} />
           <div className="flex justify-between items-center pt-4">
-            <h3 className="text-lg font-semibold">Live Sensor Metrics</h3>
+            <h3 className="text-lg font-semibold">Live Sensor Metrics (Overall)</h3>
             <div className="flex items-center space-x-3 text-xs text-muted-foreground">
               <div className="flex items-center">
                 <span className="h-2 w-2 rounded-full bg-success mr-1.5"></span>
@@ -254,10 +254,11 @@ const Index = () => {
 
         {/* Charts Section */}
         <div className="space-y-6">
+          <DigitalTwin status={healthStatus} />
           {inferenceData && inferenceData.length > 0 && (
             <InferenceDashboard inference={inferenceData[0]} />
           )}
-          <TimeSeriesChart data={historicalData} />
+          <TimeSeriesChart data={historicalData} inferenceData={inferenceData} />
         </div>
 
         {/* Floating Action Button with Chatbot Popover */}

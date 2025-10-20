@@ -1,11 +1,12 @@
 import { Card } from "@/components/ui/card";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { ConveyorReading } from "@/types/conveyor";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
+import { ConveyorReading, InferenceData } from "@/types/conveyor";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 interface TimeSeriesChartProps {
   data: ConveyorReading[];
+  inferenceData?: InferenceData[];
 }
 
 const metrics = [
@@ -16,7 +17,7 @@ const metrics = [
   { key: "Current (A)", color: "hsl(var(--chart-5))", label: "Current" },
 ] as const;
 
-export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
+export function TimeSeriesChart({ data, inferenceData = [] }: TimeSeriesChartProps) {
   const [visibleMetrics, setVisibleMetrics] = useState<Set<string>>(
     new Set(metrics.map(m => m.key))
   );
@@ -45,6 +46,15 @@ export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
       [m.label]: d[m.key]
     }), {})
   }));
+
+  const anomalies = inferenceData
+    .filter(inf => inf.content.predictions?.[0]?.predicted_class !== 'normal')
+    .map(inf => new Date(inf.timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }));
+
 
   return (
     <Card className="bg-gradient-card border-border p-6">
@@ -94,6 +104,16 @@ export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
               labelStyle={{ color: "hsl(var(--foreground))" }}
             />
             <Legend wrapperStyle={{ color: "hsl(var(--foreground))" }} />
+            {anomalies.map((anomaly, index) => (
+              <ReferenceArea
+                key={index}
+                x1={anomaly}
+                x2={anomaly} // Since it's a single point in time, x1 and x2 are the same
+                stroke="hsl(var(--destructive) / 0.5)"
+                fill="hsl(var(--destructive) / 0.2)"
+                ifOverflow="visible"
+              />
+            ))}
             {metrics.map(metric => (
               visibleMetrics.has(metric.key) && (
                 <Line
@@ -129,6 +149,16 @@ export function TimeSeriesChart({ data }: TimeSeriesChartProps) {
               labelStyle={{ color: "hsl(var(--foreground))" }}
             />
             <Legend wrapperStyle={{ color: "hsl(var(--foreground))" }} />
+            {anomalies.map((anomaly, index) => (
+              <ReferenceArea
+                key={index}
+                x1={anomaly}
+                x2={anomaly} // Since it's a single point in time, x1 and x2 are the same
+                stroke="hsl(var(--destructive) / 0.5)"
+                fill="hsl(var(--destructive) / 0.2)"
+                ifOverflow="visible"
+              />
+            ))}
             {metrics.map(metric => (
               visibleMetrics.has(metric.key) && (
                 <Bar

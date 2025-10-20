@@ -1,8 +1,6 @@
 import { InferenceRecordList } from '@/types/conveyor';
 import { useEffect, useState } from 'react';
 
-
-
 export function useInferenceData() {
   const [data, setData] = useState<InferenceRecordList>([]);
   const [isLoading, setIsLoading] = useState(true);

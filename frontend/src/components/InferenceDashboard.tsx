@@ -1,6 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { HealthStatus, InferenceRecord } from "@/types/conveyor";
+import { HealthStatus, InferenceData } from "@/types/conveyor";
 import {
   AlertOctagon,
   AlertTriangle,
@@ -50,7 +49,7 @@ const getStatus = (
 export const InferenceDashboard = ({
   inference,
 }: {
-  inference: InferenceRecord;
+  inference: InferenceData;
 }) => {
   if (
     !inference.content.predictions ||
@@ -66,8 +65,10 @@ export const InferenceDashboard = ({
     );
   }
 
+  //@ts-expect-error execting dynamic keys
   const { key, content } = inference;
   const prediction = content.predictions[0];
+  //@ts-expect-error execting dynamic keys
   const { predicted_class, confidence, top_k, timestamp } = prediction;
 
   const machineId = key.split("/")[1];
@@ -80,6 +81,7 @@ export const InferenceDashboard = ({
   const probabilityData = Object.entries(top_k)
     .map(([name, value]) => ({
       name: name.charAt(0).toUpperCase() + name.slice(1),
+      //@ts-expect-error execting dynamic keys
       probability: value * 100,
     }))
     .sort((a, b) => b.probability - a.probability);
@@ -131,8 +133,8 @@ export const InferenceDashboard = ({
             statusInfo.color === "destructive"
               ? "destructive"
               : statusInfo.color === "warning"
-              ? "secondary"
-              : "default"
+                ? "secondary"
+                : "default"
           }
           className={cn(
             statusInfo.color === "destructive" &&
@@ -156,7 +158,7 @@ export const InferenceDashboard = ({
               <CardTitle className="text-base">Fault Prediction</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold capitalize text-primary">
+              <p className="text-3xl font-bold capitalize text-primary break-words">
                 {predicted_class}
               </p>
               <p className="text-sm text-muted-foreground">Confidence Level</p>

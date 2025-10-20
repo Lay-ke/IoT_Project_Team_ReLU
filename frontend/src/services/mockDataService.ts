@@ -28,7 +28,7 @@ export class DataService {
     if (data.length === 0) {
       return null;
     }
-    return data[0];
+    return data[data.length - 1];
   }
 
   static async fetchHistoricalData(): Promise<ConveyorReading[]> {
