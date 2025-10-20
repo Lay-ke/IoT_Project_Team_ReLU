@@ -230,6 +230,85 @@ def analyze_anomaly(sensor_readings: dict) -> dict:
     }
 
 
+@tool
+def get_machine_status(machine_id: str) -> dict:
+    """Get comprehensive machine health status by analyzing sensor data and ML predictions.
+    
+    This is the primary tool for checking overall machine health. It:
+    1. Gets current sensor readings using get_sensor_readings()
+    2. Searches ML prediction history from knowledge base
+    3. Analyzes sensor anomalies
+    4. Combines all data to determine overall health status
+    
+    Args:
+        machine_id: The machine identifier to check status for
+        
+    Returns:
+        Dictionary with comprehensive health status including:
+        - overall_status: "healthy", "warning", "critical"
+        - sensor_readings: Current sensor values
+        - ml_predictions: Recent ML model predictions
+        - anomalies: Any detected sensor anomalies
+        - recommendation: Action recommendation
+    """
+    # Get sensor readings
+    sensor_data = get_sensor_readings(machine_id)
+    sensors = sensor_data.get("sensors", {})
+    
+    # Search ML predictions
+    ml_predictions = search_prediction_history(machine_id)
+    
+    # Analyze sensor anomalies
+    anomaly_analysis = analyze_anomaly(sensor_data)
+    sensor_status = anomaly_analysis.get("overall_status", "normal")
+    anomalies = anomaly_analysis.get("anomalies", [])
+    
+    # Determine overall status based on ML predictions first, then sensors
+    overall_status = "healthy"
+    recommendation = "Continue normal operations"
+    
+    # Check ML predictions for faults
+    predictions = ml_predictions.get("predictions", [])
+    if predictions and not ml_predictions.get("error"):
+        # Parse prediction content for fault indicators
+        prediction_text = " ".join([p.get("content", "").lower() for p in predictions[:3]])
+        
+        # Look for fault indicators in predictions
+        if any(word in prediction_text for word in ["critical", "failure", "fault detected", "high risk"]):
+            overall_status = "critical"
+            recommendation = "Immediate maintenance required based on ML predictions"
+        elif any(word in prediction_text for word in ["warning", "elevated", "monitor", "potential"]):
+            overall_status = "warning"
+            recommendation = "Schedule maintenance soon based on ML predictions"
+        elif "normal" in prediction_text or "healthy" in prediction_text:
+            overall_status = "healthy"
+            recommendation = "Machine operating normally according to ML model"
+    
+    # Override with sensor status if sensors are worse
+    if sensor_status == "critical":
+        overall_status = "critical"
+        recommendation = "Immediate maintenance required - critical sensor readings detected"
+    elif sensor_status == "warning" and overall_status == "healthy":
+        overall_status = "warning"
+        recommendation = "Monitor closely - elevated sensor readings detected"
+    
+    return {
+        "machine_id": machine_id,
+        "overall_status": overall_status,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "sensor_readings": sensors,
+        "sensor_status": sensor_status,
+        "anomalies": anomalies,
+        "anomaly_count": len(anomalies),
+        "ml_predictions": {
+            "predictions_found": ml_predictions.get("predictions_found", 0),
+            "has_predictions": len(predictions) > 0,
+            "recent_predictions": predictions[:3] if predictions else []
+        },
+        "recommendation": recommendation
+    }
+
+
 # ============================================================================
 # RECOMMENDATION TOOLS
 # ============================================================================
@@ -619,6 +698,104 @@ def create_work_schedule(
         return {
             "error": str(e),
             "message": "Failed to create work schedule",
+            "machine_id": machine_id
+        }
+
+
+@tool
+def schedule_maintenance_from_prompt(
+    machine_id: str,
+    fault_type: str,
+    scheduled_date: str,
+    severity: str = "monitor",
+    estimated_cost: float = None,
+    notes: str = ""
+) -> dict:
+    """Schedule maintenance manually from natural language input without ML predictions.
+    
+    Use this tool when a user wants to manually schedule maintenance based on:
+    - Visual inspection
+    - Routine maintenance
+    - Manual fault detection
+    - Preventive maintenance
+    
+    Args:
+        machine_id: Equipment identifier (e.g., "conveyor-A001")
+        fault_type: Type of fault or maintenance needed (e.g., "belt slippage", "routine inspection")
+        scheduled_date: Date for maintenance in natural format (e.g., "December 1st", "2025-12-01", "next week")
+        severity: Priority level - "critical", "warning", "monitor", or "normal" (default: "monitor")
+        estimated_cost: Optional estimated cost in USD
+        notes: Optional additional notes about the maintenance
+        
+    Returns:
+        Dictionary with schedule details and confirmation
+    """
+    if not S3_CLIENT:
+        return {
+            "error": "S3 not configured",
+            "machine_id": machine_id
+        }
+    
+    try:
+        # Parse the date using dateutil
+        from dateutil import parser as date_parser
+        try:
+            parsed_date = date_parser.parse(scheduled_date, fuzzy=True)
+            formatted_date = parsed_date.strftime('%Y-%m-%d')
+        except Exception as e:
+            return {
+                "error": f"Could not parse date: {scheduled_date}",
+                "message": "Please provide date in format like 'December 1st' or '2025-12-01'",
+                "machine_id": machine_id
+            }
+        
+        # Create schedule
+        schedule_id = f"WS-{machine_id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        
+        work_schedule = {
+            "schedule_id": schedule_id,
+            "machine_id": machine_id,
+            "created_at": datetime.utcnow().isoformat() + "Z",
+            "scheduled_date": formatted_date,
+            "fault_details": {
+                "fault_type": fault_type,
+                "severity": severity,
+                "priority": "immediate" if severity == "critical" else "scheduled",
+                "source": "manual_scheduling"
+            },
+            "scheduling_info": {
+                "estimated_cost_usd": estimated_cost,
+                "notes": notes
+            }
+        }
+        
+        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        s3_key = f"{S3_PREFIX}{timestamp}_{machine_id}.json"
+        
+        S3_CLIENT.put_object(
+            Bucket=S3_BUCKET,
+            Key=s3_key,
+            Body=json.dumps(work_schedule, indent=2),
+            ContentType='application/json'
+        )
+        
+        return {
+            "success": True,
+            "schedule_id": schedule_id,
+            "machine_id": machine_id,
+            "fault_type": fault_type,
+            "scheduled_date": formatted_date,
+            "severity": severity,
+            "estimated_cost_usd": estimated_cost,
+            "notes": notes,
+            "message": f"Maintenance scheduled for {machine_id} on {formatted_date} to address {fault_type} fault",
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+        
+    except Exception as e:
+        return {
+            "error": str(e),
+            "message": "Failed to schedule maintenance",
             "machine_id": machine_id
         }
 
@@ -1035,10 +1212,12 @@ Use the tools to provide comprehensive maintenance analysis based on data-driven
     tools=[
         get_sensor_readings,
         search_prediction_history,
+        get_machine_status,
         analyze_anomaly,
         search_maintenance_playbook,
         classify_fault_severity,
         create_work_schedule,
+        schedule_maintenance_from_prompt,
         count_scheduled_tasks,
         get_schedule_insights,
         # send_notification_email  # Disabled for testing
