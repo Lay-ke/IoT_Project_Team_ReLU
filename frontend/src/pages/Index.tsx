@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useInferenceData } from "@/hooks/useInferenceData";
 import { DataService } from "@/services/mockDataService";
-import { ConveyorReading, HealthStatus } from "@/types/conveyor";
+import { ConveyorReading, HealthStatus, Thresholds } from "@/types/conveyor";
 import {
   Activity,
   Gauge,
@@ -26,12 +26,12 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { ThresholdSettings } from "@/components/ThresholdSettings";
 
 const DEVICE_ID = "conveyor-A001";
 const REFRESH_INTERVAL = 60000; // 60 seconds
 
-// Thresholds for metric status
-const THRESHOLDS = {
+const DEFAULT_THRESHOLDS: Thresholds = {
   speed: { warning: 130, critical: 140 },
   load: { warning: 500, critical: 520 },
   temperature: { warning: 45, critical: 50 },
@@ -39,15 +39,7 @@ const THRESHOLDS = {
   current: { warning: 4.0, critical: 4.5 },
 };
 
-const getMetricStatus = (
-  value: number,
-  metric: keyof typeof THRESHOLDS
-): HealthStatus => {
-  const threshold = THRESHOLDS[metric];
-  if (value >= threshold.critical) return "critical";
-  if (value >= threshold.warning) return "warning";
-  return "healthy";
-};
+const STORAGE_KEY = "conveyor-thresholds";
 
 const Index = () => {
   const { data: inferenceData } = useInferenceData();
@@ -57,6 +49,37 @@ const Index = () => {
   const [healthStatus, setHealthStatus] = useState<HealthStatus>("healthy");
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const { toast } = useToast();
+
+  const [thresholds, setThresholds] = useState<Thresholds>(() => {
+    try {
+      const storedThresholds = localStorage.getItem(STORAGE_KEY);
+      if (storedThresholds) {
+        return JSON.parse(storedThresholds);
+      }
+    } catch (error) {
+      console.error("Failed to parse thresholds from localStorage", error);
+    }
+    return DEFAULT_THRESHOLDS;
+  });
+
+  const handleSaveThresholds = (newThresholds: Thresholds) => {
+    setThresholds(newThresholds);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newThresholds));
+    } catch (error) {
+      console.error("Failed to save thresholds to localStorage", error);
+    }
+  };
+
+  const getMetricStatus = useCallback(
+    (value: number, metric: keyof Thresholds): HealthStatus => {
+      const threshold = thresholds[metric];
+      if (value >= threshold.critical) return "critical";
+      if (value >= threshold.warning) return "warning";
+      return "healthy";
+    },
+    [thresholds]
+  );
 
   useEffect(() => {
     if (inferenceData && inferenceData.length > 0) {
@@ -149,6 +172,10 @@ const Index = () => {
                 </p>
               </div>
               <StatusBadge status={healthStatus} />
+              <ThresholdSettings
+                thresholds={thresholds}
+                onSave={handleSaveThresholds}
+              />
             </div>
           </div>
         </div>
