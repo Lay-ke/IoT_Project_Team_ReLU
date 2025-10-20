@@ -5,6 +5,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { BrainCircuit, MessageCircle, Send } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 
 interface Message {
   role: "user" | "assistant";
@@ -65,7 +67,7 @@ export function Chatbot() {
 
     try {
       const apiUrl = import.meta.env.PROD
-        ? `${import.meta.env.VITE_API_TARGET_URL || ''}/prod/prompt`
+        ? `${import.meta.env.VITE_API_TARGET_URL || ''}prod/prompt`
         : '/api/prod/prompt';
 
       const response = await fetch(apiUrl, {
@@ -132,21 +134,33 @@ export function Chatbot() {
                     : "bg-secondary text-secondary-foreground"
                 }`}
               >
-                {message.thinking ? (
+                {message.role === "assistant" ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-sm">{message.content}</p>
+                )}
+                {message.thinking && (
                   <Collapsible>
-                    <p className="text-sm">{message.content}</p>
                     <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="mt-2 w-full justify-start text-xs p-1 h-auto">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 w-full justify-start text-xs p-1 h-auto"
+                      >
                         <BrainCircuit className="h-4 w-4 mr-2" />
                         Show thought process
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-2 p-2 bg-background/50 rounded-md border border-border">
-                      <p className="text-xs italic opacity-80">{message.thinking}</p>
+                      <p className="text-xs italic opacity-80">
+                        {message.thinking}
+                      </p>
                     </CollapsibleContent>
                   </Collapsible>
-                ) : (
-                  <p className="text-sm">{message.content}</p>
                 )}
                 <p className="text-xs opacity-70 mt-1">
                   {message.timestamp.toLocaleTimeString()}
