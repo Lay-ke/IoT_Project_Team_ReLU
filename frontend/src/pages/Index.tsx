@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useInferenceData } from "@/hooks/useInferenceData";
 import { DataService } from "@/services/mockDataService";
-import { ConveyorReading, HealthStatus } from "@/types/conveyor";
+import { ConveyorReading, HealthStatus, Thresholds } from "@/types/conveyor";
 import {
   Activity,
   Gauge,
@@ -26,28 +26,20 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { ThresholdSettings } from "@/components/ThresholdSettings";
 
 const DEVICE_ID = "conveyor-A001";
 const REFRESH_INTERVAL = 60000; // 60 seconds
 
-// Thresholds for metric status
-const THRESHOLDS = {
+const DEFAULT_THRESHOLDS: Thresholds = {
   speed: { warning: 130, critical: 140 },
-  load: { warning: 550, critical: 600 },
+  load: { warning: 500, critical: 520 },
   temperature: { warning: 45, critical: 50 },
   vibration: { warning: 0.7, critical: 0.85 },
   current: { warning: 4.0, critical: 4.5 },
 };
 
-const getMetricStatus = (
-  value: number,
-  metric: keyof typeof THRESHOLDS
-): HealthStatus => {
-  const threshold = THRESHOLDS[metric];
-  if (value >= threshold.critical) return "critical";
-  if (value >= threshold.warning) return "warning";
-  return "healthy";
-};
+const STORAGE_KEY = "conveyor-thresholds";
 
 const Index = () => {
   const { data: inferenceData } = useInferenceData();
@@ -58,20 +50,57 @@ const Index = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const { toast } = useToast();
 
+  const [thresholds, setThresholds] = useState<Thresholds>(() => {
+    try {
+      const storedThresholds = localStorage.getItem(STORAGE_KEY);
+      if (storedThresholds) {
+        return JSON.parse(storedThresholds);
+      }
+    } catch (error) {
+      console.error("Failed to parse thresholds from localStorage", error);
+    }
+    return DEFAULT_THRESHOLDS;
+  });
+
+  const handleSaveThresholds = (newThresholds: Thresholds) => {
+    setThresholds(newThresholds);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newThresholds));
+    } catch (error) {
+      console.error("Failed to save thresholds to localStorage", error);
+    }
+  };
+
+  const getMetricStatus = useCallback(
+    (value: number, metric: keyof Thresholds): HealthStatus => {
+      const threshold = thresholds[metric];
+      if (value >= threshold.critical) return "critical";
+      if (value >= threshold.warning) return "warning";
+      return "healthy";
+    },
+    [thresholds]
+  );
+
   useEffect(() => {
     if (inferenceData && inferenceData.length > 0) {
-      const latestInference = inferenceData[0].content;
-      const { predicted_class, confidence } = latestInference;
+      const latestInference = inferenceData[0];
+      if (
+        latestInference.content.predictions &&
+        latestInference.content.predictions.length > 0
+      ) {
+        const prediction = latestInference.content.predictions[0];
+        const { predicted_class, confidence } = prediction;
 
-      let newStatus: HealthStatus = "healthy";
-      if (predicted_class !== "normal") {
-        if (confidence > 0.7) {
-          newStatus = "critical";
-        } else if (confidence > 0.4) {
-          newStatus = "warning";
+        let newStatus: HealthStatus = "healthy";
+        if (predicted_class !== "normal") {
+          if (confidence > 0.7) {
+            newStatus = "critical";
+          } else if (confidence > 0.4) {
+            newStatus = "warning";
+          }
         }
+        setHealthStatus(newStatus);
       }
-      setHealthStatus(newStatus);
     }
   }, [inferenceData]);
 
@@ -143,6 +172,10 @@ const Index = () => {
                 </p>
               </div>
               <StatusBadge status={healthStatus} />
+              <ThresholdSettings
+                thresholds={thresholds}
+                onSave={handleSaveThresholds}
+              />
             </div>
           </div>
         </div>
@@ -152,16 +185,24 @@ const Index = () => {
       <main className="container mx-auto px-3 py-6 grid lg:grid-cols-[500px_2fr] gap-4">
         {/* Current Metrics Grid */}
         <div className="space-y-6">
-          <StatusIndicator
-            status={
-              healthStatus === "healthy"
-                ? "normal"
-                : healthStatus === "warning"
-                  ? "warning"
-                  : "fault"
-            }
-            deviceId={DEVICE_ID}
-          />
+          <StatusIndicator status={healthStatus} deviceId={DEVICE_ID} />
+          <div className="flex justify-between items-center pt-4">
+            <h3 className="text-lg font-semibold">Live Sensor Metrics</h3>
+            <div className="flex items-center space-x-3 text-xs text-muted-foreground">
+              <div className="flex items-center">
+                <span className="h-2 w-2 rounded-full bg-success mr-1.5"></span>
+                <span>Normal</span>
+              </div>
+              <div className="flex items-center">
+                <span className="h-2 w-2 rounded-full bg-warning mr-1.5"></span>
+                <span>Warning</span>
+              </div>
+              <div className="flex items-center">
+                <span className="h-2 w-2 rounded-full bg-destructive mr-1.5"></span>
+                <span>Critical</span>
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2  gap-4 animate-fade-in h-max">
             <MetricCard
               title="Speed"
