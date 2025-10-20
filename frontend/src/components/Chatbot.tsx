@@ -64,7 +64,11 @@ export function Chatbot() {
     setIsTyping(true);
 
     try {
-      const response = await fetch("/api/prod/prompt", {
+      const apiUrl = import.meta.env.PROD
+        ? `${import.meta.env.VITE_API_TARGET_URL || ''}/prod/prompt`
+        : '/api/prod/prompt';
+
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,9 +76,9 @@ export function Chatbot() {
         body: JSON.stringify({ prompt: currentInput }),
       });
 
-      // if (!response.ok) {
-      //   throw new Error("Network response was not ok");
-      // }
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
       
       const data = await response.json();
       console.log("API Response:", data);
