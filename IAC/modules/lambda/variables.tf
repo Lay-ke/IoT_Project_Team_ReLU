@@ -52,5 +52,38 @@ variable "feature_engineer_lambda_name" {
 variable "feature_engineer_lambda_execution_role_arn" {
   description = "ARN of the IAM role assumed by the feature engineering Lambda function"
   type        = string
+}
 
+# New Lambda Functions Variables
+variable "fetch_ml_inference_data_lambda_name" {
+  description = "Name of the fetch ML inference data Lambda function"
+  type        = string
+  default     = "fetch_ml_inference_data"
+}
+
+variable "fetch_ml_inference_data_lambda_execution_role_arn" {
+  description = "ARN of the IAM role assumed by the fetch ML inference data Lambda function"
+  type        = string
+}
+
+variable "fetch_raw_sensor_data_lambda_name" {
+  description = "Name of the fetch raw sensor data Lambda function"
+  type        = string
+  default     = "fetch_raw_sensor_data"
+}
+
+variable "fetch_raw_sensor_data_lambda_execution_role_arn" {
+  description = "ARN of the IAM role assumed by the fetch raw sensor data Lambda function"
+  type        = string
+}
+
+variable "fetch_schedule_data_lambda_name" {
+  description = "Name of the fetch schedule data Lambda function"
+  type        = string
+  default     = "fetch_schedule_data"
+}
+
+variable "fetch_schedule_data_lambda_execution_role_arn" {
+  description = "ARN of the IAM role assumed by the fetch schedule data Lambda function"
+  type        = string
 }

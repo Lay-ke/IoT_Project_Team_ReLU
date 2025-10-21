@@ -56,9 +56,45 @@ resource "aws_iam_policy" "lambda_iot_publish_policy" {
   })
 }
 
+# IAM Policy for Lambda to access SageMaker Runtime and SSM Parameter Store
+resource "aws_iam_policy" "lambda_sagemaker_ssm_policy" {
+  name        = "lambda_sagemaker_ssm_policy"
+  description = "Allow Lambda functions to invoke SageMaker endpoints and access SSM Parameter Store"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sagemaker:InvokeEndpoint"
+        ]
+        Resource = [
+          "arn:aws:sagemaker:*:*:endpoint/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
+        ]
+        Resource = [
+          "*"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "lambda_iot_publish_attach" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.lambda_iot_publish_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_sagemaker_ssm_attach" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_sagemaker_ssm_policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_s3_attach" {

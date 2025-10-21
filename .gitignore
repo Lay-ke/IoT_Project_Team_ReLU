@@ -28,8 +28,7 @@ faultcast-env/
 *.tfvars.backup
 *.tfplan
 
-# Data / models
-ml_model/
+
 
 # IDE
 .vscode/

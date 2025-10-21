@@ -1,4 +1,4 @@
-import json, os, io, time, random
+import json, os, io, random
 from datetime import datetime, timezone
 import boto3
 import numpy as np
@@ -11,7 +11,7 @@ DEVICE_ID        = os.getenv("DEVICE_ID", "conveyor-A001")
 IOT_TOPIC_BASE   = os.getenv("IOT_TOPIC_BASE", "predictive-maintenance/sensor-data-1")
 S3_BUCKET        = os.getenv("S3_BUCKET", "predictive-maintenance-data-1")
 REFERENCE_BUCKET = os.getenv("REFERENCE_BUCKET", "predictive-maintenance-data-1")
-REFERENCE_KEY    = os.getenv("REFERENCE_DATA_KEY", "raw_dataset/final_conveyor_fault_dataset.csv")
+REFERENCE_KEY    = os.getenv("REFERENCE_DATA_KEY", "raw_dataset/conveyor_fault_dataset.csv")
 N_SAMPLES        = int(os.getenv("N_SAMPLES", "60"))
 TRAINING_MODE    = os.getenv("TRAINING_MODE", "True").lower() == "true"
 
@@ -22,7 +22,6 @@ s3  = boto3.client("s3")
 # LOAD AND CLEAN REFERENCE DATA
 # ==========================================================
 def load_reference_data_from_s3(bucket: str, key: str) -> pd.DataFrame | None:
-    """Load reference dataset from S3 safely and clean it for numeric consistency."""
     try:
         obj = s3.get_object(Bucket=bucket, Key=key)
         df = pd.read_csv(io.BytesIO(obj["Body"].read()))
@@ -31,8 +30,7 @@ def load_reference_data_from_s3(bucket: str, key: str) -> pd.DataFrame | None:
         print(f"⚠️ Could not load reference dataset: {e}")
         return None
 
-    # --- basic cleanup ---
-    df.columns = [c.strip() for c in df.columns]  # strip spaces from headers
+    df.columns = [c.strip() for c in df.columns]
     if "Fault" in df.columns:
         df["Fault"] = df["Fault"].astype(str).str.strip().str.lower()
 
@@ -40,9 +38,7 @@ def load_reference_data_from_s3(bucket: str, key: str) -> pd.DataFrame | None:
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # drop rows missing numeric data
     df = df.dropna(subset=numeric_cols)
-
     print(f"🧹 Cleaned dataset: {len(df)} valid numeric rows remain.")
     return df
 
@@ -51,77 +47,80 @@ def load_reference_data_from_s3(bucket: str, key: str) -> pd.DataFrame | None:
 # COMPUTE FEATURE BASELINES
 # ==========================================================
 def compute_feature_baselines(df: pd.DataFrame) -> dict:
-    """Compute mean/std/correlation per fault class."""
     numeric_cols = ["Load (kg)", "Speed (rpm)", "Current (A)", "Vibration (m/s²)", "Temperature (℃)"]
     baselines = {}
-
     for fault, group in df.groupby("Fault"):
         baselines[fault] = {
             "mean": group[numeric_cols].mean().to_dict(),
             "std": group[numeric_cols].std().to_dict(),
-            "corr": group[numeric_cols].corr().to_dict(),
         }
-
     print(f"✅ Computed baselines for {len(baselines)} fault classes: {list(baselines.keys())}")
     return baselines
 
 
 # ==========================================================
-# FAULT MODE SELECTOR
+# RANDOM SAMPLE PICKER
 # ==========================================================
-def generate_fault_mode() -> str:
-    faults = ["normal", "ball_bearing", "central_shaft", "pulley", "drive_motor", "idler_roller", "belt_slippage"]
-    return random.choices(faults, weights=[0.55, 0.1, 0.08, 0.08, 0.07, 0.06, 0.06], k=1)[0]
+def pick_random_sample(df: pd.DataFrame) -> pd.Series:
+    """Pick a random sample row (entire data) from the dataset."""
+    sample_row = df.sample(1).iloc[0]
+    fault = str(sample_row["Fault"]).lower()
+    print(f"Sample data: {sample_row}")
+    print(f"🎯 Picked random sample for fault class: {fault}")
+    return sample_row
 
 
 # ==========================================================
 # SIMULATION LOGIC
 # ==========================================================
-def simulate_conveyor_batch(device_id: str, fault: str, baselines: dict, n: int = 60) -> pd.DataFrame:
+def simulate_conveyor_batch(device_id: str, sample_row: pd.Series, baselines: dict, n: int = 60) -> pd.DataFrame:
+    fault = sample_row["Fault"]
     rng = np.random.default_rng()
-
-    base = baselines.get(fault, baselines["normal"])  # fallback to normal if fault missing
+    base = baselines.get(fault, baselines.get("normal", {}))
     mu, sigma = base["mean"], base["std"]
 
-    load = rng.normal(mu["Load (kg)"], sigma["Load (kg)"], n)
-    speed = rng.normal(mu["Speed (rpm)"], sigma["Speed (rpm)"], n)
-    current = rng.normal(mu["Current (A)"], sigma["Current (A)"], n)
-    vibration = rng.normal(mu["Vibration (m/s²)"], sigma["Vibration (m/s²)"], n)
-    temperature = rng.normal(mu["Temperature (℃)"], sigma["Temperature (℃)"], n)
+    # Generate synthetic samples
+    load = rng.normal(mu["Load (kg)"], sigma["Load (kg)"], n-1)
+    speed = rng.normal(mu["Speed (rpm)"], sigma["Speed (rpm)"], n-1)
+    current = rng.normal(mu["Current (A)"], sigma["Current (A)"], n-1)
+    vibration = rng.normal(mu["Vibration (m/s²)"], sigma["Vibration (m/s²)"], n-1)
+    temperature = rng.normal(mu["Temperature (℃)"], sigma["Temperature (℃)"], n-1)
 
-    # ===== Fault-specific modifiers =====
+    t = np.linspace(0, 2*np.pi, n-1)
+
+    # Amplified distinct patterns
     if fault == "ball_bearing":
-        vibration += np.linspace(0, 0.8, n) + rng.normal(0, 0.15, n)
-        temperature += np.linspace(0, 3.0, n)
-
+        vibration += 0.8 * np.sin(3*t) + rng.normal(0, 0.3, n-1)
+        temperature += np.linspace(0, 5, n-1)
+        current += rng.normal(0.1, 0.05, n-1)
     elif fault == "central_shaft":
-        vibration += np.sin(np.linspace(0, 4*np.pi, n)) * 0.25
-        temperature += np.linspace(0, 1.5, n)
-        
-        speed += np.sin(np.linspace(0, 2*np.pi, n)) * 0.6
-
+        vibration += 0.6 * np.sin(5*t) + rng.normal(0, 0.25, n-1)
+        temperature += np.linspace(0, 4, n-1)
+        speed += 0.8 * np.sin(2*t)
     elif fault == "pulley":
-        vibration += np.sin(np.linspace(0, 8*np.pi, n)) * 0.3
-        current += np.random.choice([0, 0.3], size=n, p=[0.9, 0.1])
-        speed -= np.random.choice([0, 0.5], size=n, p=[0.95, 0.05])
-
+        vibration += np.sin(10*t) * 1.0
+        current += rng.normal(0.4, 0.15, n-1)
+        speed -= rng.normal(0.7, 0.2, n-1)
+        temperature += np.linspace(0, 2.5, n-1)
     elif fault == "drive_motor":
-        current += np.linspace(0.2, 0.6, n)
-        temperature += np.linspace(1.0, 4.0, n)
-        vibration += rng.normal(0, 0.05, n)
-
+        current += np.linspace(0.3, 1.0, n-1)
+        vibration += rng.normal(0.2, 0.1, n-1)
+        temperature += np.linspace(2.0, 6.0, n-1)
+        load += rng.normal(0.3, 0.15, n-1)
     elif fault == "idler_roller":
-        vibration += np.linspace(0, 0.3, n) + rng.normal(0, 0.05, n)
-        current += rng.normal(0, 0.02, n)
-
+        vibration += 0.5 * np.sin(4*t) + rng.normal(0, 0.2, n-1)
+        current += rng.normal(0.1, 0.05, n-1)
+        temperature += np.linspace(0, 2, n-1)
     elif fault == "belt_slippage":
-        speed -= np.sin(np.linspace(0, 6*np.pi, n)) * 0.8
-        vibration += np.sin(np.linspace(0, 6*np.pi, n)) * 0.2
-        current -= np.sin(np.linspace(0, 6*np.pi, n)) * 0.1
+        speed -= 1.5 * np.sin(3*t) + rng.normal(0, 0.4, n-1)
+        vibration += 0.6 * np.sin(3*t + np.pi/4)
+        current -= 0.3 * np.sin(3*t)
+        load -= rng.normal(0.4, 0.15, n-1)
+        temperature += rng.normal(0.5, 0.2, n-1)
 
-    timestamps = [datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ") for _ in range(n)]
+    timestamps = [datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ") for _ in range(n-1)]
 
-    df = pd.DataFrame({
+    sim_df = pd.DataFrame({
         "timestamp": timestamps,
         "device_id": device_id,
         "Speed (rpm)": speed,
@@ -131,6 +130,19 @@ def simulate_conveyor_batch(device_id: str, fault: str, baselines: dict, n: int 
         "Current (A)": current,
         "Fault": fault,
     })
+
+    # Prepend the real sample as first row
+    real_row = {
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        "device_id": device_id,
+        "Speed (rpm)": sample_row["Speed (rpm)"],
+        "Load (kg)": sample_row["Load (kg)"],
+        "Temperature (℃)": sample_row["Temperature (℃)"],
+        "Vibration (m/s²)": sample_row["Vibration (m/s²)"],
+        "Current (A)": sample_row["Current (A)"],
+        "Fault": fault,
+    }
+    df = pd.concat([pd.DataFrame([real_row]), sim_df], ignore_index=True)
 
     if not TRAINING_MODE:
         df.drop(columns=["Fault"], inplace=True)
@@ -142,7 +154,6 @@ def simulate_conveyor_batch(device_id: str, fault: str, baselines: dict, n: int 
 # AWS PUBLISH HELPERS
 # ==========================================================
 def batch_publish_to_iot(df: pd.DataFrame):
-    """Publish data to IoT Core in a batch."""
     topic = IOT_TOPIC_BASE
     messages = [json.dumps(row.to_dict()) for _, row in df.iterrows()]
     try:
@@ -153,7 +164,6 @@ def batch_publish_to_iot(df: pd.DataFrame):
 
 
 def upload_to_s3_batch(df: pd.DataFrame):
-    """Upload batch JSON to S3."""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     key = f"conveyor_batches/{timestamp}_{DEVICE_ID}.json"
     json_data = df.to_json(orient="records", lines=False)
@@ -165,21 +175,21 @@ def upload_to_s3_batch(df: pd.DataFrame):
 
 
 # ==========================================================
-# MAIN LAMBDA HANDLER
+# MAIN HANDLER
 # ==========================================================
 def lambda_handler(event=None, context=None):
     ref_df = load_reference_data_from_s3(REFERENCE_BUCKET, REFERENCE_KEY)
-    if ref_df is None:
-        print("❌ No reference dataset available. Exiting.")
+    if ref_df is None or ref_df.empty:
+        print("❌ Reference dataset missing.")
         return {"statusCode": 500, "body": json.dumps({"error": "Reference dataset missing"})}
 
     baselines = compute_feature_baselines(ref_df)
-    fault = generate_fault_mode()
-    df = simulate_conveyor_batch(DEVICE_ID, fault, baselines, N_SAMPLES)
 
-    print(f"🚧 Simulated {N_SAMPLES} samples from {DEVICE_ID} (fault: {fault})")
+    sample_row = pick_random_sample(ref_df)
+    df = simulate_conveyor_batch(DEVICE_ID, sample_row, baselines, N_SAMPLES)
+
+    print(f"🚧 Simulated {len(df)} samples (fault: {sample_row['Fault']})")
     print(df.head(3))
-    print("Correlation matrix:\n", df[["Load (kg)", "Current (A)", "Vibration (m/s²)", "Temperature (℃)"]].corr().round(2))
 
     batch_publish_to_iot(df)
     upload_to_s3_batch(df)
@@ -189,7 +199,7 @@ def lambda_handler(event=None, context=None):
         "body": json.dumps({
             "device_id": DEVICE_ID,
             "samples_generated": len(df),
-            "fault_simulated": fault,
+            "fault_simulated": sample_row["Fault"],
             "avg_vibration": round(df["Vibration (m/s²)"].mean(), 3),
             "avg_current": round(df["Current (A)"].mean(), 3)
         }),

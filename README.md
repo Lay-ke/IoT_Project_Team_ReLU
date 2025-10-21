@@ -34,6 +34,10 @@ PdM leverages data-driven insights to anticipate failures. It shifts the operati
 
 The PMF system utilizes a **scalable, five-layer pipeline** that leverages cloud-native services for data simulation, intelligence, and action.
 
+![PMF System Architecture](./ReLU.drawio.png)
+
+*Figure 1: End-to-End PMF System Architecture showing the five-layer pipeline from data simulation to smart scheduling*
+
 ### 3.1. Data Simulation Layer
 
 The foundation is a **digital twin** created via simulated data, crucial for low-cost, high-volume model training and validation.
@@ -122,7 +126,38 @@ The entire system is designed for **Infrastructure as Code (IaC)** using Terrafo
     ./lauch.sh
     ```
 
-3.  **Bedrock Agent Configuration (Post-Provisioning):** Due to the complexity of Agent definitions, this step often requires manual or scripted configuration within the AWS Bedrock Console.
+### Post-deployment
+3.  **ML Model Training:** Access SageMaker Studio from the AWS console and upload all files from the `ml_model` folder to your Jupyter workspace.
+
+  **3.1. Import Files to Jupyter Workspace**
+  
+  After deploying the IaC infrastructure:
+  
+  * Access **SageMaker Studio** from the AWS console
+  * Upload all files from the `ml_model` folder to your Jupyter workspace:
+    * `pipeline.ipynb` (main training notebook)
+    * `train.py`, `feature_engineering.py`, `inference.py`
+    * `best_model.pth`, `scaler.pkl`, `features.txt`, `classes.txt`, `metrics.json`
+
+  **3.2. Training Process**
+  
+  * Open `pipeline.ipynb` in Jupyter
+  * Click **"Run All Cells"** to start training
+  * Wait ~10-15 minutes for completion
+  * The notebook automatically handles:
+    * Data preprocessing and feature engineering
+    * LSTM model training for fault classification
+    * Model evaluation and artifact saving
+
+  **3.3. Verification**
+  
+  Training is complete when you see:
+  * ✅ Updated model artifacts (`best_model.pth`, `scaler.pkl`)
+  * ✅ Training metrics and plots in the notebook
+  * ✅ Model ready for PMF pipeline integration
+
+
+4.  **Bedrock Agent Configuration (Post-Provisioning):** Due to the complexity of Agent definitions, this step often requires manual or scripted configuration within the AWS Bedrock Console.
 
       * **Define Agent Schemas:** Specify the **Action Groups** (APIs) the agents can call (e.g., an API endpoint to update a schedule database).
       * **Configure AgentCore:** Create the primary Bedrock Agent and define the four sub-agents: **Scheduler, Diagnosis, Explanation, and Recommendation Agents**.
