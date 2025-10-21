@@ -187,7 +187,8 @@ resource "aws_iam_policy" "sagemaker_policy" {
           "ecr:BatchGetImage",
           "ecr:BatchCheckLayerAvailability",
           "iam:PassRole",
-          "sagemaker:*"
+          "sagemaker:*",
+          "ssm:*"
         ]
         Resource = [
           "*"
