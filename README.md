@@ -135,9 +135,8 @@ The entire system is designed for **Infrastructure as Code (IaC)** using Terrafo
   
   * Access **SageMaker Studio** from the AWS console
   * Upload all files from the `ml_model` folder to your Jupyter workspace:
-    * `pipeline.ipynb` (main training notebook)
-    * `train.py`, `feature_engineering.py`, `inference.py`
-    * `best_model.pth`, `scaler.pkl`, `features.txt`, `classes.txt`, `metrics.json`
+    * `mlpipe.ipynb` (main training notebook)
+    * `train.py`, `inference.py`
 
   **3.2. Training Process**
   
@@ -152,8 +151,7 @@ The entire system is designed for **Infrastructure as Code (IaC)** using Terrafo
   **3.3. Verification**
   
   Training is complete when you see:
-  * ✅ Updated model artifacts (`best_model.pth`, `scaler.pkl`)
-  * ✅ Training metrics and plots in the notebook
+  * ✅ An inference endpoint has been created
   * ✅ Model ready for PMF pipeline integration
 
 
