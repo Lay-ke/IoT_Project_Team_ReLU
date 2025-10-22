@@ -108,7 +108,7 @@ The entire system is designed for **Infrastructure as Code (IaC)** using Terrafo
 | **Stream Processing** | AWS Lambda (L4, L6) | Handles data transfer, orchestrates model invocation, and stores results. |
 | **Anomaly/Rule Logic** | Packaged in L6 / SageMaker Endpoint | Executes the core predictive maintenance models. |
 | **Multi-Agent System** | **Amazon Bedrock AgentCore** | Orchestrates specialized agents for reasoning, decision, and action. |
-| **Visualization Layer** | Streamlit App & AWS Lambda (L8) | Provides the user interface; L8 acts as an API for data display. |
+| **Visualization Layer** | AWS Ampliify (L8) | Provides the user interface; api gateway exposes as the API for data display. |
 
 ### 4.3. Deployment Workflow
 
