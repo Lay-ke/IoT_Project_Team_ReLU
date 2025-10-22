@@ -1,9 +1,4 @@
 # S3 Bucket Names
-output "conveyor_batch_bucket_name" {
-  description = "Name of the conveyor batch processing S3 bucket"
-  value       = module.s3.conveyor_batch_bucket_name
-}
-
 output "raw_data_bucket_name" {
   description = "Name of the raw data S3 bucket"
   value       = module.s3.raw_data_bucket_name
@@ -15,11 +10,6 @@ output "feature_engineered_data_bucket_name" {
 }
 
 # Parameter Store ARNs
-output "conveyor_batch_bucket_parameter_arn" {
-  description = "ARN of the parameter store for conveyor batch bucket name"
-  value       = module.s3.conveyor_batch_bucket_parameter_arn
-}
-
 output "raw_data_bucket_parameter_arn" {
   description = "ARN of the parameter store for raw data bucket name"
   value       = module.s3.raw_data_bucket_parameter_arn

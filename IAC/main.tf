@@ -52,11 +52,11 @@ module "lambda" {
   bedrock_agent_lambda_name                          = var.bedrock_agent_lambda_name
   feature_engineer_lambda_name                       = var.feature_engineer_lambda_name
   feature_engineer_lambda_execution_role_arn         = module.iam.lambda_execution_role_arn
-  
+
   # Data access Lambda functions
-  fetch_ml_inference_data_lambda_execution_role_arn  = module.iam.lambda_execution_role_arn
-  fetch_raw_sensor_data_lambda_execution_role_arn    = module.iam.lambda_execution_role_arn
-  fetch_schedule_data_lambda_execution_role_arn      = module.iam.lambda_execution_role_arn
+  fetch_ml_inference_data_lambda_execution_role_arn = module.iam.lambda_execution_role_arn
+  fetch_raw_sensor_data_lambda_execution_role_arn   = module.iam.lambda_execution_role_arn
+  fetch_schedule_data_lambda_execution_role_arn     = module.iam.lambda_execution_role_arn
 }
 
 # Module for IoT Core
@@ -88,34 +88,32 @@ module "sagemaker" {
 module "s3" {
   source = "./modules/s3"
 
-  conveyor_batch_bucket_name               = var.conveyor_batch_bucket_name
-  raw_data_bucket_name                     = "predictive-maintenance-data-1"
-  feature_engineered_data_bucket_name      = "predictive-maintenance-feature-store"
-  environment                              = var.environment
-  feature_engineer_lambda_function_arn    = module.lambda.feature_engineer_lambda_function_arn
-  lambda_permission_dependency            = aws_lambda_permission.allow_bucket
+  raw_data_bucket_name                 = "predictive-maintenance-data-1"
+  feature_engineered_data_bucket_name  = "predictive-maintenance-feature-store"
+  environment                          = var.environment
+  feature_engineer_lambda_function_arn = module.lambda.feature_engineer_lambda_function_arn
 }
 
 # Module for API Gateway
 module "api_gateway" {
   source = "./modules/api_gateway"
 
-  api_name                                 = "relu-pmf-api"
-  environment                              = var.environment
-  stage_name                               = "prod"
-  aws_region                               = var.aws_region
-  
+  api_name    = "relu-pmf-api"
+  environment = var.environment
+  stage_name  = "prod"
+  aws_region  = var.aws_region
+
   # Lambda function ARNs for API Gateway integrations
-  ml_inference_lambda_function_arn         = module.lambda.fetch_ml_inference_data_lambda_function_arn
-  prompt_lambda_function_arn               = module.lambda.bedrock_agent_lambda_function_arn
-  schedules_lambda_function_arn            = module.lambda.fetch_schedule_data_lambda_function_arn
-  sensor_readings_lambda_function_arn      = module.lambda.fetch_raw_sensor_data_lambda_function_arn
-  
+  ml_inference_lambda_function_arn    = module.lambda.fetch_ml_inference_data_lambda_function_arn
+  prompt_lambda_function_arn          = module.lambda.bedrock_agent_lambda_function_arn
+  schedules_lambda_function_arn       = module.lambda.fetch_schedule_data_lambda_function_arn
+  sensor_readings_lambda_function_arn = module.lambda.fetch_raw_sensor_data_lambda_function_arn
+
   # Lambda function names for permissions
-  ml_inference_lambda_function_name        = module.lambda.fetch_ml_inference_data_lambda_function_name
-  prompt_lambda_function_name              = module.lambda.bedrock_agent_lambda_function_name
-  schedules_lambda_function_name           = module.lambda.fetch_schedule_data_lambda_function_name
-  sensor_readings_lambda_function_name     = module.lambda.fetch_raw_sensor_data_lambda_function_name
+  ml_inference_lambda_function_name    = module.lambda.fetch_ml_inference_data_lambda_function_name
+  prompt_lambda_function_name          = module.lambda.bedrock_agent_lambda_function_name
+  schedules_lambda_function_name       = module.lambda.fetch_schedule_data_lambda_function_name
+  sensor_readings_lambda_function_name = module.lambda.fetch_raw_sensor_data_lambda_function_name
 }
 
 ## block to allow S3 to invoke the feature_engineer Lambda function
@@ -125,7 +123,7 @@ resource "aws_lambda_permission" "allow_bucket" {
   action        = "lambda:InvokeFunction"
   function_name = module.lambda.feature_engineer_lambda_function_name
   principal     = "s3.amazonaws.com"
-  source_arn    = module.s3.conveyor_batch_bucket_arn
+  source_arn    = module.s3.raw_data_bucket_arn
 }
 
 # SSM Parameter for SageMaker Inference Endpoint Name

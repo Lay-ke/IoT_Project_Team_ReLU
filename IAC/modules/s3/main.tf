@@ -30,23 +30,9 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
     filter_prefix       = "conveyor_batches/"
     filter_suffix       = ".json"
   }
-
-  depends_on = [var.lambda_permission_dependency]
 }
 
 # AWS Systems Manager Parameter Store for S3 bucket names
-resource "aws_ssm_parameter" "conveyor_batch_bucket_name" {
-  name        = "/relu/s3/conveyor-batch-bucket-name"
-  description = "Name of the S3 bucket for conveyor batch processing"
-  type        = "String"
-  value       = var.conveyor_batch_bucket_name
-
-  tags = {
-    Environment = var.environment
-    Purpose     = "S3 Bucket Configuration"
-  }
-}
-
 resource "aws_ssm_parameter" "raw_data_bucket_name" {
   name        = "/relu/s3/raw-data-bucket-name"
   description = "Name of the S3 bucket for raw predictive maintenance data"

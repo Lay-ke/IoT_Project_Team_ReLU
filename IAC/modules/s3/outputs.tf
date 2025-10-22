@@ -1,18 +1,3 @@
-output "conveyor_batch_bucket_name" {
-  description = "Name of the conveyor batch processing S3 bucket"
-  value       = data.aws_s3_bucket.conveyor_batch_bucket.bucket
-}
-
-output "conveyor_batch_bucket_arn" {
-  description = "ARN of the conveyor batch processing S3 bucket"
-  value       = data.aws_s3_bucket.conveyor_batch_bucket.arn
-}
-
-output "conveyor_batch_bucket_id" {
-  description = "ID of the conveyor batch processing S3 bucket"
-  value       = data.aws_s3_bucket.conveyor_batch_bucket.id
-}
-
 output "raw_data_bucket_name" {
   description = "Name of the raw data S3 bucket"
   value       = aws_s3_bucket.raw_data_bucket.bucket
@@ -33,12 +18,6 @@ output "feature_engineered_data_bucket_arn" {
   value       = aws_s3_bucket.feature_engineered_data_bucket.arn
 }
 
-# Parameter Store outputs
-output "conveyor_batch_bucket_parameter_arn" {
-  description = "ARN of the parameter store for conveyor batch bucket name"
-  value       = aws_ssm_parameter.conveyor_batch_bucket_name.arn
-}
-
 output "raw_data_bucket_parameter_arn" {
   description = "ARN of the parameter store for raw data bucket name"
   value       = aws_ssm_parameter.raw_data_bucket_name.arn
@@ -53,7 +32,6 @@ output "feature_engineered_data_bucket_parameter_arn" {
 output "bucket_parameter_names" {
   description = "Parameter Store names for all S3 buckets"
   value = {
-    conveyor_batch_bucket      = aws_ssm_parameter.conveyor_batch_bucket_name.name
     raw_data_bucket           = aws_ssm_parameter.raw_data_bucket_name.name
     feature_engineered_bucket = aws_ssm_parameter.feature_engineered_data_bucket_name.name
   }

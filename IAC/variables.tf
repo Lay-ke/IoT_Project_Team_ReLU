@@ -60,12 +60,6 @@ variable "schedule_name" {
   default     = "agentic-ai-schedule"
 }
 
-variable "conveyor_batch_bucket_name" {
-  description = "Name of the S3 bucket for conveyor batch processing"
-  type        = string
-  default     = "predictive-maintenance-models-1"
-}
-
 variable "feature_engineer_lambda_name" {
   description = "Name of the feature engineering Lambda function"
   type        = string

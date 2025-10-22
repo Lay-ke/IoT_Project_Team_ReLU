@@ -2,7 +2,7 @@
 resource "aws_api_gateway_rest_api" "relu_api" {
   name        = var.api_name
   description = "API Gateway for Predictive Maintenance Forecaster (PMF)"
-  
+
   endpoint_configuration {
     types = ["REGIONAL"]
   }

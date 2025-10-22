@@ -17,7 +17,6 @@ This module manages all S3 buckets and related resources for the Predictive Main
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| conveyor_batch_bucket_name | Name of the S3 bucket for conveyor batch processing | `string` | n/a | yes |
 | raw_data_bucket_name | Name of the S3 bucket for raw predictive maintenance data | `string` | `"predictive-maintenance-data-1"` | no |
 | feature_engineered_data_bucket_name | Name of the S3 bucket for feature engineered data | `string` | `"predictive-maintenance-feature-store"` | no |
 | environment | The deployment environment (e.g., dev, staging, prod) | `string` | n/a | yes |
@@ -28,8 +27,6 @@ This module manages all S3 buckets and related resources for the Predictive Main
 
 | Name | Description |
 |------|-------------|
-| conveyor_batch_bucket_name | Name of the conveyor batch processing S3 bucket |
-| conveyor_batch_bucket_arn | ARN of the conveyor batch processing S3 bucket |
 | raw_data_bucket_name | Name of the raw data S3 bucket |
 | raw_data_bucket_arn | ARN of the raw data S3 bucket |
 | feature_engineered_data_bucket_name | Name of the feature engineered data S3 bucket |
@@ -42,12 +39,10 @@ This module manages all S3 buckets and related resources for the Predictive Main
 module "s3" {
   source = "./modules/s3"
 
-  conveyor_batch_bucket_name               = var.conveyor_batch_bucket_name
-  raw_data_bucket_name                     = "predictive-maintenance-data-1"
-  feature_engineered_data_bucket_name      = "predictive-maintenance-feature-store"
-  environment                              = var.environment
-  feature_engineer_lambda_function_arn    = module.lambda.feature_engineer_lambda_function_arn
-  lambda_permission_dependency            = aws_lambda_permission.allow_bucket
+  raw_data_bucket_name                 = "my-raw-data-bucket"
+  feature_engineered_data_bucket_name  = "my-feature-store-bucket"
+  environment                          = "production"
+  feature_engineer_lambda_function_arn = module.lambda.feature_engineer_lambda_function_arn
 }
 ```
 
