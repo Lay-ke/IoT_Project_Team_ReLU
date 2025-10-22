@@ -45,6 +45,8 @@ Thumbs.db
 # AgentCore
 .bedrock_agentcore/
 .bedrock_agentcore.yaml
+.bedrock_agentcore.yaml.backup
+!.bedrock_agentcore.yaml.template
 
 # Test files
 tests/__pycache__/

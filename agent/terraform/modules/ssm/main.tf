@@ -2,10 +2,11 @@
 
 # AWS Configuration
 resource "aws_ssm_parameter" "aws_region" {
-  name        = "/faultcast/aws-region"
+  name        = "${var.ssm_parameter_prefix}/aws-region"
   description = "FaultCast AWS Region"
-  type        = "String"
+  type        = "SecureString"
   value       = data.aws_region.current.name
+  overwrite   = true
 
   tags = {
     Environment = var.environment
@@ -14,10 +15,11 @@ resource "aws_ssm_parameter" "aws_region" {
 
 # Bedrock Configuration
 resource "aws_ssm_parameter" "bedrock_region" {
-  name        = "/faultcast/bedrock-region"
+  name        = "${var.ssm_parameter_prefix}/bedrock-region"
   description = "FaultCast Bedrock Region"
-  type        = "String"
+  type        = "SecureString"
   value       = data.aws_region.current.name
+  overwrite   = true
 
   tags = {
     Environment = var.environment
@@ -25,10 +27,11 @@ resource "aws_ssm_parameter" "bedrock_region" {
 }
 
 resource "aws_ssm_parameter" "bedrock_model_id" {
-  name        = "/faultcast/bedrock-model-id"
+  name        = "${var.ssm_parameter_prefix}/bedrock-model-id"
   description = "FaultCast Bedrock Model ID"
-  type        = "String"
+  type        = "SecureString"
   value       = "amazon.nova-pro-v1:0"
+  overwrite   = true
 
   tags = {
     Environment = var.environment
@@ -37,9 +40,9 @@ resource "aws_ssm_parameter" "bedrock_model_id" {
 
 # Knowledge Base Configuration
 resource "aws_ssm_parameter" "knowledge_base_id" {
-  name        = "/faultcast/knowledge-base-id"
+  name        = "${var.ssm_parameter_prefix}/knowledge-base-id"
   description = "FaultCast Knowledge Base ID"
-  type        = "String"
+  type        = "SecureString"
   value       = var.knowledge_base_id
   overwrite   = true
 
@@ -49,9 +52,9 @@ resource "aws_ssm_parameter" "knowledge_base_id" {
 }
 
 resource "aws_ssm_parameter" "knowledge_base_region" {
-  name        = "/faultcast/knowledge-base-region"
+  name        = "${var.ssm_parameter_prefix}/knowledge-base-region"
   description = "FaultCast Knowledge Base Region"
-  type        = "String"
+  type        = "SecureString"
   value       = data.aws_region.current.name
   overwrite   = true
 
@@ -62,9 +65,9 @@ resource "aws_ssm_parameter" "knowledge_base_region" {
 
 # Work Schedule Configuration
 resource "aws_ssm_parameter" "work_schedule_bucket" {
-  name        = "/faultcast/work-schedule-bucket"
+  name        = "${var.ssm_parameter_prefix}/work-schedule-bucket"
   description = "FaultCast Work Schedule S3 Bucket"
-  type        = "String"
+  type        = "SecureString"
   value       = var.work_schedule_bucket
   overwrite   = true
 
@@ -74,9 +77,9 @@ resource "aws_ssm_parameter" "work_schedule_bucket" {
 }
 
 resource "aws_ssm_parameter" "work_schedule_prefix" {
-  name        = "/faultcast/work-schedule-prefix"
+  name        = "${var.ssm_parameter_prefix}/work-schedule-prefix"
   description = "FaultCast Work Schedule S3 Prefix"
-  type        = "String"
+  type        = "SecureString"
   value       = "maintenance-schedules/"
   overwrite   = true
 
@@ -87,10 +90,11 @@ resource "aws_ssm_parameter" "work_schedule_prefix" {
 
 # Application Configuration
 resource "aws_ssm_parameter" "environment" {
-  name        = "/faultcast/environment"
+  name        = "${var.ssm_parameter_prefix}/environment"
   description = "FaultCast Environment"
-  type        = "String"
+  type        = "SecureString"
   value       = var.environment
+  overwrite   = true
 
   tags = {
     Environment = var.environment
@@ -98,10 +102,11 @@ resource "aws_ssm_parameter" "environment" {
 }
 
 resource "aws_ssm_parameter" "log_level" {
-  name        = "/faultcast/log-level"
+  name        = "${var.ssm_parameter_prefix}/log-level"
   description = "FaultCast Log Level"
-  type        = "String"
+  type        = "SecureString"
   value       = "INFO"
+  overwrite   = true
 
   tags = {
     Environment = var.environment

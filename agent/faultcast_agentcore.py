@@ -38,9 +38,12 @@ def load_config_from_ssm():
     try:
         ssm = boto3.client('ssm', region_name=os.getenv('AWS_REGION', 'eu-west-1'))
         
-        # Get all FaultCast parameters
+        # Get SSM parameter prefix from environment or use default
+        ssm_prefix = os.getenv('SSM_PARAMETER_PREFIX', '/faultcast/v2')
+        
+        # Get all parameters from the configured prefix
         response = ssm.get_parameters_by_path(
-            Path='/faultcast',
+            Path=ssm_prefix,
             Recursive=True,
             WithDecryption=True
         )

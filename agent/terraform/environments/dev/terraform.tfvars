@@ -25,3 +25,6 @@ agentcore_agent_arn     = ""  # Will be populated after agent deployment
 # Monitoring and Scheduling
 enable_monitoring          = true
 sensor_simulation_schedule = "rate(1 minute)"
+
+# SSM Parameter Configuration
+ssm_parameter_prefix = "/faultcast/v2"  # Change this to customize parameter path

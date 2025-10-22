@@ -76,3 +76,9 @@ variable "sensor_simulation_schedule" {
   type        = string
   default     = "rate(1 minute)"
 }
+
+variable "ssm_parameter_prefix" {
+  description = "SSM parameter prefix path for agent configuration (e.g., /faultcast or /myapp)"
+  type        = string
+  default     = "/faultcast/v2"
+}

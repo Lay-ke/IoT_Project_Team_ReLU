@@ -1,0 +1,41 @@
+default_agent: relu_agent
+agents:
+  relu_agent:
+    name: relu_agent
+    entrypoint: {{AGENT_ENTRYPOINT}}
+    platform: linux/arm64
+    container_runtime: docker
+    source_path: {{SOURCE_PATH}}
+    aws:
+      execution_role: {{EXECUTION_ROLE_ARN}}
+      execution_role_auto_create: false
+      account: '{{AWS_ACCOUNT_ID}}'
+      region: {{AWS_REGION}}
+      ecr_repository: {{ECR_REPOSITORY}}
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+        network_mode_config: null
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: null
+      agent_arn: null
+      agent_session_id: null
+    codebuild:
+      project_name: null
+      execution_role: null
+      source_bucket: null
+    memory:
+      mode: STM_AND_LTM
+      memory_id: null
+      memory_arn: null
+      memory_name: relu_agent_memory
+      event_expiry_days: 30
+      first_invoke_memory_check_done: false
+      was_created_by_toolkit: false
+    authorizer_configuration: null
+    request_header_configuration: null
+    oauth_configuration: null

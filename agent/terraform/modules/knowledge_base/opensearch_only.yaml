@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'OpenSearch Serverless for Bedrock Knowledge Base'
+
+Parameters:
+  ProjectName:
+    Type: String
+  Environment:
+    Type: String
+  KnowledgeBaseRoleArn:
+    Type: String
+
+Resources:
+  EncryptionPolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Name: !Sub '${ProjectName}-kb-v2-encryption-${Environment}'
+      Type: encryption
+      Policy: !Sub |
+        {
+          "Rules": [{"Resource": ["collection/${ProjectName}-kb-v2-${Environment}"], "ResourceType": "collection"}],
+          "AWSOwnedKey": true
+        }
+
+  NetworkPolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Name: !Sub '${ProjectName}-kb-v2-network-${Environment}'
+      Type: network
+      Policy: !Sub |
+        [{"Rules": [{"Resource": ["collection/${ProjectName}-kb-v2-${Environment}"], "ResourceType": "collection"}], "AllowFromPublic": true}]
+
+  OpenSearchCollection:
+    Type: AWS::OpenSearchServerless::Collection
+    DependsOn: [EncryptionPolicy, NetworkPolicy]
+    Properties:
+      Name: !Sub '${ProjectName}-kb-v2-${Environment}'
+      Type: VECTORSEARCH
+
+  DataAccessPolicy:
+    Type: AWS::OpenSearchServerless::AccessPolicy
+    DependsOn: OpenSearchCollection
+    Properties:
+      Name: !Sub '${ProjectName}-kb-v2-access-${Environment}'
+      Type: data
+      Policy: !Sub |
+        [{
+          "Rules": [
+            {"Resource": ["collection/${ProjectName}-kb-v2-${Environment}"], "Permission": ["aoss:CreateCollectionItems", "aoss:DeleteCollectionItems", "aoss:UpdateCollectionItems", "aoss:DescribeCollectionItems"], "ResourceType": "collection"},
+            {"Resource": ["index/${ProjectName}-kb-v2-${Environment}/*"], "Permission": ["aoss:CreateIndex", "aoss:DeleteIndex", "aoss:UpdateIndex", "aoss:DescribeIndex", "aoss:ReadDocument", "aoss:WriteDocument"], "ResourceType": "index"}
+          ],
+          "Principal": ["${KnowledgeBaseRoleArn}"]
+        }]
+
+Outputs:
+  CollectionArn:
+    Value: !GetAtt OpenSearchCollection.Arn
+  CollectionEndpoint:
+    Value: !GetAtt OpenSearchCollection.CollectionEndpoint

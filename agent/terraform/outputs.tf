@@ -43,22 +43,17 @@ output "ssm_parameter_paths" {
   value       = module.ssm.parameter_paths
 }
 
-output "knowledge_base_id" {
-  description = "Bedrock Knowledge Base ID"
-  value       = var.create_knowledge_base ? module.knowledge_base[0].knowledge_base_id : var.knowledge_base_id
+output "ssm_parameter_prefix" {
+  description = "SSM parameter prefix path"
+  value       = var.ssm_parameter_prefix
 }
 
-output "knowledge_base_arn" {
-  description = "Bedrock Knowledge Base ARN"
-  value       = var.create_knowledge_base ? module.knowledge_base[0].knowledge_base_arn : null
+output "opensearch_collection_arn" {
+  description = "OpenSearch Serverless collection ARN"
+  value       = var.create_knowledge_base ? module.knowledge_base[0].opensearch_collection_arn : null
 }
 
-output "knowledge_base_s3_bucket" {
-  description = "S3 bucket for Knowledge Base documents"
-  value       = var.create_knowledge_base ? module.knowledge_base[0].s3_bucket_name : var.existing_kb_s3_bucket_name
-}
-
-output "knowledge_base_data_source_ids" {
-  description = "Knowledge Base data source IDs"
-  value       = var.create_knowledge_base ? module.knowledge_base[0].data_source_ids : null
+output "opensearch_collection_endpoint" {
+  description = "OpenSearch Serverless collection endpoint"
+  value       = var.create_knowledge_base ? module.knowledge_base[0].opensearch_collection_endpoint : null
 }

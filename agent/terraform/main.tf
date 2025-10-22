@@ -98,24 +98,39 @@ module "iam_policies" {
   project_name                   = var.project_name
   agentcore_role_name            = module.iam_roles.agentcore_execution_role_name
   knowledge_base_role_name       = module.iam_roles.knowledge_base_role_name
-  knowledge_base_id              = var.create_knowledge_base ? module.knowledge_base[0].knowledge_base_id : var.knowledge_base_id
+  knowledge_base_id              = "placeholder"
   work_schedule_bucket           = var.existing_kb_s3_bucket_name
-  create_knowledge_base          = false  # Don't recreate KB policies
+  create_knowledge_base          = false
   knowledge_base_docs_bucket_arn = var.existing_kb_s3_bucket_arn
-  opensearch_collection_arn      = ""
+  opensearch_collection_arn      = var.create_knowledge_base ? module.knowledge_base[0].opensearch_collection_arn : ""
 
   depends_on = [module.knowledge_base]
 }
 
 # SSM Parameters Module
+# Knowledge Base Setup - Runs Python script to create KB
+module "knowledge_base_setup" {
+  count  = var.create_knowledge_base ? 1 : 0
+  source = "./modules/knowledge_base_setup"
+
+  collection_arn  = module.knowledge_base[0].opensearch_collection_arn
+  kb_role_arn     = module.iam_roles.knowledge_base_role_arn
+  policy_name     = "${var.project_name}-kb-v2-access-${var.environment}"
+  collection_name = "${var.project_name}-kb-v2-${var.environment}"
+  region          = var.aws_region
+
+  depends_on = [module.knowledge_base, module.iam_policies]
+}
+
 module "ssm" {
   source = "./modules/ssm"
 
-  environment          = var.environment
-  knowledge_base_id    = var.create_knowledge_base ? module.knowledge_base[0].knowledge_base_id : var.knowledge_base_id
-  work_schedule_bucket = var.existing_kb_s3_bucket_name
+  environment           = var.environment
+  knowledge_base_id     = "REPLACE_AFTER_KB_CREATION"
+  work_schedule_bucket  = var.existing_kb_s3_bucket_name
+  ssm_parameter_prefix  = var.ssm_parameter_prefix
 
-  depends_on = [module.knowledge_base, module.iam_policies]
+  depends_on = [module.knowledge_base_setup]
 }
 
 # IoT Module (placeholder) - Disabled for now
