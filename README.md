@@ -119,7 +119,7 @@ The entire system is designed for **Infrastructure as Code (IaC)** using Terrafo
     cd IoT_Project_Team_ReLU/terraform
     ```
 
-2.  **Terraform Provisioning:** The entire infrastructure is provisioned by the launch script.
+2.  **Terraform Provisioning:** The entire infrastructure is provisioned by the launch script. change directory to IAC folder and run the command below:
 
     ```bash
     chmod +x launch.sh    
@@ -127,10 +127,9 @@ The entire system is designed for **Infrastructure as Code (IaC)** using Terrafo
     ```
 
 ### Post-deployment
-3.  **ML Model Training:** Access SageMaker Studio from the AWS console and upload all files from the `ml_model` folder to your Jupyter workspace.
 
-  **3.1. Import Files to Jupyter Workspace**
-  
+3.  **ML Model Training:**  Due to complexity of the model training, this step often requires manual or scripted configuration within the AWS Bedrock Console.
+
   After deploying the IaC infrastructure:
   
   * Access **SageMaker Studio** from the AWS console
