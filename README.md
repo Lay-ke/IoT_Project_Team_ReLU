@@ -123,7 +123,7 @@ The entire system is designed for **Infrastructure as Code (IaC)** using Terrafo
 
     ```bash
     chmod +x launch.sh    
-    ./lauch.sh
+    ./launch.sh
     ```
 
 ### Post-deployment
@@ -139,7 +139,7 @@ The entire system is designed for **Infrastructure as Code (IaC)** using Terrafo
 
   **3.2. Training Process**
   
-  * Open `pipeline.ipynb` in Jupyter
+  * Open `mlpipe.ipynb` in Jupyter
   * Click **"Run All Cells"** to start training
   * Wait ~10-15 minutes for completion
   * The notebook automatically handles:
