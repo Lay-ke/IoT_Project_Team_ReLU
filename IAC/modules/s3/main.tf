@@ -32,6 +32,18 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
   }
 }
 
+# S3 Event Notification to trigger bedrock agent lambda
+resource "aws_s3_bucket_notification" "feature_store_bucket_notification" {
+  bucket = aws_s3_bucket.feature_engineered_data_bucket.id
+
+  lambda_function {
+    lambda_function_arn = var.bedrock_agent_lambda_function_arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_prefix       = "inference/conveyor-A001/"
+    filter_suffix       = ".json"
+  }
+}
+
 # AWS Systems Manager Parameter Store for S3 bucket names
 resource "aws_ssm_parameter" "raw_data_bucket_name" {
   name        = "/relu/s3/raw-data-bucket-name"

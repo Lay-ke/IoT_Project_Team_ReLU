@@ -92,6 +92,7 @@ module "s3" {
   feature_engineered_data_bucket_name  = "predictive-maintenance-feature-store"
   environment                          = var.environment
   feature_engineer_lambda_function_arn = module.lambda.feature_engineer_lambda_function_arn
+  bedrock_agent_lambda_function_arn    = module.lambda.bedrock_agent_lambda_function_arn
 }
 
 # Module for API Gateway

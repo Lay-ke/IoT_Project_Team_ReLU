@@ -19,3 +19,9 @@ variable "feature_engineer_lambda_function_arn" {
   description = "ARN of the feature engineer Lambda function"
   type        = string
 }
+
+variable "bedrock_agent_lambda_function_arn" {
+  description = "ARN of the Bedrock agent Lambda function"
+  type        = string
+
+}
