@@ -204,6 +204,6 @@ For issues or questions, please open an issue on GitHub.
 
 ---
 
-**Agent ARN**: `arn:aws:bedrock-agentcore:eu-west-1:771826808190:runtime/relu_agent-K1lW4rCNbV`  
-**Region**: `eu-west-1`  
+**Agent ARN**: `arn:aws:bedrock-agentcore:<region>:<account-id>:runtime/relu_agent-K1lW4rCNbV`  
+**Region**: `based on region being used for provisioning`  
 **Status**: Production Ready ✅

@@ -156,6 +156,4 @@ The entire system is designed for **Infrastructure as Code (IaC)** using Terrafo
 
 4.  **Bedrock Agent Configuration (Post-Provisioning):** Due to the complexity of Agent definitions, this step often requires manual or scripted configuration within the AWS Bedrock Console.
 
-      * **Define Agent Schemas:** Specify the **Action Groups** (APIs) the agents can call (e.g., an API endpoint to update a schedule database).
-      * **Configure AgentCore:** Create the primary Bedrock Agent and define the four sub-agents: **Scheduler, Diagnosis, Explanation, and Recommendation Agents**.
-      * **Orchestration Logic:** Provide clear instructions to AgentCore on the workflow (e.g., "Diagnosis first, then Explanation, then Recommendation, concluding with the Scheduler updating the database.").
+  Navigate to the agent folder to set it up.
