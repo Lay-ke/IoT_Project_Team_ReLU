@@ -1,0 +1,39 @@
+# Exclude local virtual environments and caches
+my-env/
+.venv/
+venv/
+.env/
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+*.dll
+*.log
+*.tmp
+*.bak
+
+# Tooling and build artefacts
+.bedrock_agentcore/
+.bedrock_agentcore.yaml
+.agentcore_build/
+.agentcore_build.zip
+deployment_extracted/
+deployment.zip
+.dockerignore
+.kiro/
+vendor/
+
+# Non-runtime assets
+terraform/
+scripts/
+tests/
+docs/
+README.md
+AGENTCORE_CONFIG.md
+SCHEDULE_TOOLS_README.md
+SETUP_GUIDE.md
+TERRAFORM_SETUP.md
+
+# Development leftovers
+*.ipynb
+*.drawio
